@@ -60,7 +60,7 @@ const references = [
 
     },
     {
-        hardwareName: "Infeqtion (Neutral Atom)",
+        hardwareName: "Infleqtion (Neutral Atom)",
         link: "https://www.nextbigfuture.com/2024/02/infleqtion-1600-qubit-array-today-and-five-year-roadmap-to-fault-tolerant-quantum-computers.html",
         year: 2024,
 

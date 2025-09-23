@@ -248,7 +248,7 @@ const hardwares = ref([
         reference: "https://www.hpcwire.com/2024/03/13/pasqal-issues-roadmap-to-10000-qubits-in-2026-and-fault-tolerance-in-2028/",
     },
     {
-        hardwareName: "Infeqtion (Neutral Atom)",
+        hardwareName: "Infleqtion (Neutral Atom)",
         penaltyInput: "sqrt(q)",
         processors: 5,
         hardwareSlowdown: 5.1,
