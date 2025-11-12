@@ -3,6 +3,7 @@ import Multiselect from 'vue-multiselect'
 import HardwareSlowdownAdvanced from './HardwareSlowdownAdvanced.vue';
 import { useModelsStore } from '../store/models';
 import { Switch } from '@headlessui/vue'
+import MappingPreview from './MappingPreview.vue'
 
 import { onMounted, ref, watch, computed } from 'vue';
 import EditRoadmap from './EditRoadmap.vue';
@@ -640,25 +641,27 @@ function updateFunctions(updatedValues) {
 
                 </div>
 
+                <!-- Qubits → Problem Size -->
                 <div class="flex flex-col">
-                    <label class="font-medium text-sm" for="qubits_to_size">Qubits to Problem Size</label>
-                    <p class="text-xs text-gray-600">The function which correlates maximum problem size solvable with
-                        the given
-                        number of qubits (q).</p>
-                    <multiselect class="custom-multiselect mt-1" v-model="model.qubitToProblemSize"
-                        :options="qubitSizeOptions" :searchable="true" :close-on-select="true" :show-labels="false"
-                        :allow-empty="false" placeholder="Pick a value">
-                        <template #singleLabel="slotProps">
-                            <span v-html="katex.renderToString(slotProps.option)"></span>
-                        </template>
+                <label class="font-medium text-sm" for="qubits_to_size">Qubits to Problem Size</label>
+                <p class="text-xs text-gray-600">
+                    The function which correlates maximum problem size solvable with the given number of qubits (q).
+                    Use <code>q</code> in your expression. Examples: <code>q</code>, <code>sqrt(q)</code>,
+                    <code>q^2</code>, <code>log(q, 2)</code>, <code>2^q</code>.
+                </p>
 
-                        <template #option="slotProps">
-                            <div class="flex items-center gap-2">
-                                <span v-html="katex.renderToString(slotProps.option)"></span>
-                            </div>
-                        </template>
-                    </multiselect>
+                <input
+                    class="mt-1 bg-gray-100 p-2 rounded-lg text-sm"
+                    v-model="model.qubitToProblemSize"
+                    type="text"
+                    placeholder="q"
+                />
+
+                <!-- live preview -->
+                <MappingPreview :expr="model.qubitToProblemSize" :roadmap="model.roadmap" />
                 </div>
+
+
 
                 <!-- <button @click="updateFunctions">Update Functions</button> -->
 

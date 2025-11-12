@@ -2,18 +2,38 @@
 import { ref, watch } from 'vue';
 import { Chart } from 'highcharts-vue'
 import * as utils from "../store/utils"
-import { split } from 'postcss/lib/list';
 
 const props = defineProps({
-    data: Object
-});
+  data: Object,
+  showSteps: {
+    type: Boolean,
+    default: true
+  },
+  showCost: {
+    type: Boolean,
+    default: true
+  }
+})
 const key = ref(0);
 
 
 function processDataToGraph(data) {
-    // data contains classicalCostSteps, classicalSteps, quantumCostSteps, quantumSteps, stepCostStar, nCostStar, stepStar, nStar
-    // the steps are a list of lists of the form [problem size, step]
-    // Round the problem sizes to 2 decimal places and remove duplicates
+    if (!data || !Array.isArray(data.classicalSteps)) {
+        return {
+            graphTitle: 'Integer Factorization Problem Sizes',
+            classicalSteps: [],
+            classicalCostSteps: [],
+            quantumCostSteps: [],
+            quantumSteps: [],
+            stepCostStar: 0,
+            nCostStar: 0,
+            stepStar: 0,
+            nStar: 0,
+            maxY: 100,
+            maxX: 100
+        };
+    }
+
     let stepCostStar = utils.round(data.stepCostStar, 2);
     let nCostStar = utils.round(data.nCostStar, 2);
     let stepStar = utils.round(data.stepStar, 2);
@@ -22,12 +42,16 @@ function processDataToGraph(data) {
     const midY = (stepCostStar + stepStar) / 2;
     const midX = (nStar + nCostStar) / 2;
 
-    // Set maxY and maxX to the minimum values among classicalSteps, quantumSteps, and quantumCostSteps if midY or midX is 0
     const maxY = (midY === 0)
-        ? Math.min(...[data.classicalSteps, data.classicalCostSteps, data.quantumSteps, data.quantumCostSteps].map(arr => Math.max(...arr.map(step => step[1]))))
+        ? Math.min(...[data.classicalSteps, data.classicalCostSteps, data.quantumSteps, data.quantumCostSteps]
+            .filter(arr => Array.isArray(arr) && arr.length)
+            .map(arr => Math.max(...arr.map(step => step[1]))), 100)
         : midY * 2;
+
     const maxX = (midX === 0)
-        ? Math.min(...[data.classicalSteps, data.classicalCostSteps, data.quantumSteps, data.quantumCostSteps].map(arr => Math.max(...arr.map(step => step[0]))))
+        ? Math.min(...[data.classicalSteps, data.classicalCostSteps, data.quantumSteps, data.quantumCostSteps]
+            .filter(arr => Array.isArray(arr) && arr.length)
+            .map(arr => Math.max(...arr.map(step => step[0]))), 100)
         : midX * 2;
 
     let classicalSteps = data.classicalSteps.filter(step => step[0] <= maxX && step[1] <= maxY);
@@ -140,8 +164,31 @@ const chartOptions = {
             lineWidth: 2,
         }
     },
-    series: []
+    series: [
+    // steps / speed lines
+    ...(props.showSteps ? [
+        {
+        name: 'Classical',
+        data: props.data.classicalSteps
+        },
+        {
+        name: 'Quantum',
+        data: props.data.quantumSteps
+        }
+    ] : []),
 
+    // cost lines
+    ...(props.showCost ? [
+        {
+        name: 'Classical Cost',
+        data: props.data.classicalCostSteps
+        },
+        {
+        name: 'Quantum Cost',
+        data: props.data.quantumCostSteps
+        }
+    ] : [])
+    ],
 }
 
 watch(() => props.data, async () => {
@@ -149,8 +196,15 @@ watch(() => props.data, async () => {
     updateGraphData();
     key.value += 1;
 }, { immediate: true, deep: true })
+watch(() => [props.showSteps, props.showCost], () => {
+    updateGraphData();
+    key.value += 1;
+});
+
 
 function updateGraphData() {
+    if (!data) return;
+
     chartOptions.title.text = data.graphTitle
 
     chartOptions.plotOptions.series.label.connectorAllowed = false
@@ -198,8 +252,11 @@ function updateGraphData() {
         
     })
 
-    chartOptions.series = [
-        {
+        const series = [];
+
+    // --- steps / speed lines ---
+    if (props.showSteps) {
+        series.push({
             name: 'Classical Steps',
             data: [...data.classicalSteps, ({
                 dataLabels: {
@@ -209,7 +266,6 @@ function updateGraphData() {
                     verticalAlign: 'middle',
                     overflow: true,
                     crop: false,
-                    // format: '{series.name}',
                     color: 'green',
                     shadow: false,
                     style: {
@@ -221,60 +277,18 @@ function updateGraphData() {
                     formatter: function () {
                         return '<div style="text-align: cnter;">Classical<br/>Algorithm</div>';
                     }
-
                 },
                 x: data.classicalSteps[data.classicalSteps.length - 1][0],
                 y: data.classicalSteps[data.classicalSteps.length - 1][1],
-
             })],
             color: 'green',
             marker: {
                 enabled: false,
                 symbol: 'circle'
             }
+        });
 
-        },
-        {
-            name: 'Classical Cost',
-            data: [...data.classicalCostSteps, ({
-                dataLabels: {
-                    enabled: true,
-                    align: 'left',
-                    x: 3,
-                    verticalAlign: 'middle',
-                    overflow: true,
-                    crop: false,
-                    color: 'rgba(0,255,0,1)', //Andrew should choose a better color
-                    shadow: false,
-                    style: {
-                        fontSize: '12px',
-                        fontWeight: 'bold',
-                        textOutline: 'none'
-                    },
-                    // breakline
-                    useHTML: true,
-                    formatter: function () {
-                        return '<div style="text-align: cnter;">Classical<br/>Algorithm<br/>Cost</div>';
-                    }
-
-                },
-                x: data.classicalCostSteps[data.classicalCostSteps.length - 1][0],
-                y: data.classicalCostSteps[data.classicalCostSteps.length - 1][1],
-
-            })],
-            type: 'spline',
-            style: {
-                linewidth: 22,
-                color: 'rgba(0,255,0,1)'
-            },
-            color: 'rgba(0,255,0,1)',
-            marker: {
-                enabled: false,
-                symbol: 'circle'
-            }
-        },
-
-        {
+        series.push({
             name: 'Quantum Steps',
             data: [...data.quantumSteps, ({
                 dataLabels: {
@@ -298,15 +312,55 @@ function updateGraphData() {
                 },
                 x: data.quantumSteps[data.quantumSteps.length - 1][0],
                 y: data.quantumSteps[data.quantumSteps.length - 1][1],
-
             })],
             color: 'rgba(0,45,157,1)',
             marker: {
                 enabled: false,
                 symbol: 'circle'
             }
-        },
-        {
+        });
+    }
+
+    // --- cost lines ---
+    if (props.showCost) {
+        series.push({
+            name: 'Classical Cost',
+            data: [...data.classicalCostSteps, ({
+                dataLabels: {
+                    enabled: true,
+                    align: 'left',
+                    x: 3,
+                    verticalAlign: 'middle',
+                    overflow: true,
+                    crop: false,
+                    color: 'rgba(0,255,0,1)', //Andrew should choose a better color
+                    shadow: false,
+                    style: {
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        textOutline: 'none'
+                    },
+                    useHTML: true,
+                    formatter: function () {
+                        return '<div style="text-align: cnter;">Classical<br/>Algorithm<br/>Cost</div>';
+                    }
+                },
+                x: data.classicalCostSteps[data.classicalCostSteps.length - 1][0],
+                y: data.classicalCostSteps[data.classicalCostSteps.length - 1][1],
+            })],
+            type: 'spline',
+            style: {
+                linewidth: 22,
+                color: 'rgba(0,255,0,1)'
+            },
+            color: 'rgba(0,255,0,1)',
+            marker: {
+                enabled: false,
+                symbol: 'circle'
+            }
+        });
+
+        series.push({
             name: 'Quantum Cost',
             data: [...data.quantumCostSteps, ({
                 dataLabels: {
@@ -323,16 +377,13 @@ function updateGraphData() {
                         fontWeight: 'bold',
                         textOutline: 'none'
                     },
-                    // breakline
                     useHTML: true,
                     formatter: function () {
                         return '<div style="text-align: cnter;">Quantum<br/>Algorithm<br/>Cost</div>';
                     }
-
                 },
                 x: data.quantumCostSteps[data.quantumCostSteps.length - 1][0],
                 y: data.quantumCostSteps[data.quantumCostSteps.length - 1][1],
-
             })],
             type: 'spline',
             style: {
@@ -344,37 +395,40 @@ function updateGraphData() {
                 enabled: false,
                 symbol: 'circle'
             }
-        },
+        });
+    }
 
-        {
-            name: 'Quantum Cost Advantage',
-            data: [[data.nCostStar, data.stepCostStar]],
-            color: 'rgba(48,158,244,1)',
-            type: 'scatter',
-            maxPointWidth: 1,
-            marker: {
-                enabled: true,
-                symbol: 'circle'
-            },
-            enableMouseTracking: false,
+    // --- always show the two anchor scatter points ---
+    series.push({
+        name: 'Quantum Cost Advantage',
+        data: [[data.nCostStar, data.stepCostStar]],
+        color: 'rgba(48,158,244,1)',
+        type: 'scatter',
+        maxPointWidth: 1,
+        marker: {
+            enabled: true,
+            symbol: 'circle'
+        },
+        enableMouseTracking: false,
+        showInLegend: false
+    });
 
-           
-            showInLegend: false
+    series.push({
+        name: 'Quantum Advantage',
+        data: [[data.nStar, data.stepStar]],
+        color: 'rgba(0,45,157,1)',
+        type: 'scatter',
+        maxPointWidth: 1,
+        marker: {
+            enabled: true,
+            symbol: 'circle'
         },
-        {
-            name: 'Quantum Advantage',
-            data: [[data.nStar, data.stepStar]],
-            color: 'rgba(0,45,157,1)',
-            type: 'scatter',
-            maxPointWidth: 1,
-            marker: {
-                enabled: true,
-                symbol: 'circle'
-            },
-            enableMouseTracking: false,
-            showInLegend: false
-        },
-    ]
+        enableMouseTracking: false,
+        showInLegend: false
+    });
+
+    chartOptions.series = series;
+
 
     chartOptions.annotations = [
 

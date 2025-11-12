@@ -1,4 +1,50 @@
 import * as math from 'mathjs';
+// finite guards for plotting
+const MIN_POSITIVE_Q = 1e-6;
+const MIN_LOG10_Q    = Math.log10(MIN_POSITIVE_Q);
+
+function finiteOr(value, fallback) {
+  return Number.isFinite(value) ? value : fallback;
+}
+
+// Accept both "{q}" and "q"
+export function normalizeQubitMapping(exprRaw) {
+  if (typeof exprRaw !== "string") return exprRaw;
+  return exprRaw.replace(/\{\s*q\s*\}/gi, "q");
+}
+
+
+export function normalizeQExpr(expr = "") {
+    return String(expr)
+      .trim()
+      .replaceAll(/\{q\}/g, "q") // legacy -> new
+      .replaceAll(/\s+/g, "")
+      .toLowerCase();
+  }
+  
+  export function classifyQubitMapping(expr) {
+    const s = normalizeQExpr(expr);
+  
+    if (s === "q") return "linear";
+    if (s === "2^q" || s === "2^{q}") return "exp";
+    if (s === "2^(2^q)" || s === "2^(2^{q})") return "doubleexp";
+    if (s === "log(q,2)" || s === "log2(q)" || s === "log({q})" || s === "log(q)") return "log";
+  
+    return "custom";
+  }
+  
+  export function isBuiltinQubitMapping(expr) {
+    return classifyQubitMapping(expr) !== "custom";
+  }
+  
+  /** Replace every free occurrence of a variable name with a replacement expression. */
+  export function replaceVariable(srcExpression, varName, replacementExpr) {
+    // Matches `varName` as a symbol (not part of a longer name)
+    const re = new RegExp(`\\b${varName}\\b`, "g");
+    // Also support the legacy {q}
+    const reLegacy = new RegExp(`\\{${varName}\\}`, "g");
+    return String(srcExpression).replaceAll(re, replacementExpr).replaceAll(reLegacy, replacementExpr);
+  }  
 
 //rounds input number to the specified number of digits
 export function round(number, decimalDigits=2) {
@@ -161,68 +207,49 @@ const interpolationFunctions = {
 }
 
 // a map containing serialized strings of the inputs to the linear regression function mapped to their output regression
-const regressionMap = new Map()
+const regressionMap = new Map();
 
 //returns log_10 of the number of qubits available based on inputs and saves the value to the regressionMap
 export function getPhysicalQubits(year, roadmap, extrapolationType, baseFactor = 1) {
-    year = parseFloat(year);
-    let years = Object.keys(roadmap).map(Number);
-    let qubits = Object.values(roadmap).map(Number);
+  year = parseFloat(year);
+  let years = Object.keys(roadmap).map(Number);
+  let qubits = Object.values(roadmap).map(Number);
 
-    //actual value of the number of physical qubits
-    let numberOfPhysicalQubits;
-    //logOfPhysicalQubits variable holds log_{10} of the true number of physical qubits
-    let logOfPhysicalQubits;
-    if (roadmap.hasOwnProperty(year)) {
-        numberOfPhysicalQubits = roadmap[year]
-        logOfPhysicalQubits = Math.log10(numberOfPhysicalQubits);
-    } 
-    else if (year > Math.max(...years)) {
-        if (extrapolationType === 'linear') {
-            let [lastYears, lastQubits] = [years.slice(-2), qubits.slice(-2)]
-            let key = JSON.stringify([lastYears, lastQubits]);
-            let regression;
-            if (regressionMap.has(key)) {
-                regression = regressionMap.get(key)
-            }
-            else{
-                regression = simpleLinearRegression(lastYears, lastQubits);
-                regressionMap.set(key, regression)
-            }
+  // actual value of the number of physical qubits
+  let numberOfPhysicalQubits;
+  // logOfPhysicalQubits holds log_10 of the true number of physical qubits
+  let logOfPhysicalQubits;
 
-            numberOfPhysicalQubits = regression.slope * year + regression.intercept;
-            logOfPhysicalQubits = Math.log10(numberOfPhysicalQubits);
-        } 
-        else {
-            //exponential regression is just linear regression in log space
-            let [lastYears, lastQubitsLog] = [years.slice(-2), qubits.slice(-2).map(x => Math.log10(x))]
-            let key = JSON.stringify([lastYears, lastQubitsLog]);
-            let regression;
-            if (regressionMap.has(key)) {
-                regression = regressionMap.get(key)
-            }
-            else{
-                regression = simpleLinearRegression(lastYears, lastQubitsLog);
-                regressionMap.set(key, regression)
-            }
+  if (roadmap.hasOwnProperty(year)) {
+    numberOfPhysicalQubits = roadmap[year];
+    logOfPhysicalQubits = Math.log10(numberOfPhysicalQubits);
+  } else if (year > Math.max(...years)) {
+    if (extrapolationType === 'linear') {
+      let [lastYears, lastQubits] = [years.slice(-2), qubits.slice(-2)];
+      let key = JSON.stringify([lastYears, lastQubits]);
+      let regression = regressionMap.has(key)
+        ? regressionMap.get(key)
+        : (regressionMap.set(key, simpleLinearRegression(lastYears, lastQubits)), regressionMap.get(key));
 
-            // numberOfPhysicalQubits = 10 ** (regression.slope * year + regression.intercept);
-            logOfPhysicalQubits = regression.slope * year + regression.intercept;
+      numberOfPhysicalQubits = regression.slope * year + regression.intercept;
+      logOfPhysicalQubits = Math.log10(numberOfPhysicalQubits);
+    } else {
+      // exponential regression is just linear regression in log space
+      let [lastYears, lastQubitsLog] = [years.slice(-2), qubits.slice(-2).map(x => Math.log10(x))];
+      let key = JSON.stringify([lastYears, lastQubitsLog]);
+      let regression = regressionMap.has(key)
+        ? regressionMap.get(key)
+        : (regressionMap.set(key, simpleLinearRegression(lastYears, lastQubitsLog)), regressionMap.get(key));
 
-            // different logic to incorporate base factor.
-            // let growthRate = Math.pow(qubits[qubits.length - 1] / qubits[qubits.length - 2], 1 / (years[years.length - 1] - years[years.length - 2]));
-            // // logOfPhysicalQubits = Math.log10(qubits[qubits.length - 1]) + (year - years[years.length - 1]) * Math.log10(growthRate);
-            // logOfPhysicalQubits = Math.log10(qubits[qubits.length - 1]) + (year - years[years.length - 1]) * Math.log10(growthRate * baseFactor);
-        
-        }
-
-    } 
-    else {
-        numberOfPhysicalQubits = interpolationFunctions[extrapolationType](years, qubits, year)
-        logOfPhysicalQubits = Math.log10(numberOfPhysicalQubits);
+      logOfPhysicalQubits = regression.slope * year + regression.intercept;
+      // (You previously experimented with baseFactor; leaving it out here matches your working path.)
     }
+  } else {
+    numberOfPhysicalQubits = interpolationFunctions[extrapolationType](years, qubits, year);
+    logOfPhysicalQubits = Math.log10(numberOfPhysicalQubits);
+  }
 
-    return logOfPhysicalQubits
+  return logOfPhysicalQubits;
 }
 
 // find when f(x) = 0
@@ -291,36 +318,152 @@ export function bisectionMethod(f, a, b, description = "", tol = 1e-7, maxIter =
     return c;
 }
 
-//returns (log_10 of) the amount of logical qubits needed to achieve said problem size using the function specified by qubitToProblemSize
-//(logSize parameter is log_10 of the actual problem size)
+//returns (log_10 of) the amount of logical qubits needed to achieve said problem size using
+//the function specified by qubitToProblemSize (accepts "{q}" or "q", and "log({q})" or "log(q)")
+//( logSize is log_10 of the actual problem size )
 export function problemSizeToQubits(logSize, qubitToProblemSize) {
-    let loglogicalQubits = 0;
-    if (qubitToProblemSize == "2^{q}") {
-        loglogicalQubits = Math.log10(logSize) - Math.log10(Math.log10(2))
+    const norm = normalizeQubitMapping(String(qubitToProblemSize || "").trim());
+  
+    // We compute q (the logical qubits), then return log10(q).
+    // All paths are clamped to keep charts stable.
+    let qValue;
+  
+    if (norm === "2^{q}") {
+      // size = 10^logSize = 2^q  =>  q = log2(10^logSize) = logSize / log10(2)
+      qValue = logSize / Math.log10(2);
+  
+    } else if (norm === "2^(2^{q})") {
+      // size = 2^(2^q)
+      // log2(size) = 2^q
+      // 2^q = log2(10^logSize) = logSize * log2(10)
+      // q = log2( log2(10^logSize) ) = log2( logSize * log2(10) )
+      const inner = logSize * Math.LOG2E * Math.log(10); // log2(10) == Math.LOG2E*Math.log(10)
+      qValue = Math.log2(Math.max(inner, MIN_POSITIVE_Q));
+  
+    } else if (norm === "{q}" || norm === "q") {
+      // size == q  =>  logSize = log10(q)  =>  log10(q) = logSize
+      // So we can return logSize directly (just clamp to be safe)
+      const log10q = finiteOr(logSize, MIN_LOG10_Q);
+      return log10q;
+  
+    } else if (norm === "log({q})" || norm === "log(q)") {
+      // size = log10(q)
+      // 10^logSize = log10(q)  =>  q = 10^(10^logSize)
+      // For stability, clamp extremely small/negative logSize so q stays finite
+      const rhs = Math.pow(10, logSize);
+      qValue = Math.pow(10, rhs);
+  
+    } else {
+      // Unknown form — keep previous behavior (but stable)
+      // Fallback: pretend size == q  =>  log10(q) = logSize
+      const log10q = finiteOr(logSize, MIN_LOG10_Q);
+      return log10q;
     }
-    else if (qubitToProblemSize == "2^(2^{q})") {
-        loglogicalQubits = Math.log10(Math.log2(logSize / Math.log10(2)))
-    }
-    else if (qubitToProblemSize == "{q}") {
-        loglogicalQubits = logSize
-    }
-    else if (qubitToProblemSize == "log({q})") {
-        loglogicalQubits = Math.pow(10, logSize) * Math.log10(2)
-    }
-    else {
-        console.log("this should never print, loglogicalQubits will be set to 0")
-    }
-    return loglogicalQubits;
-}
-
-export function replaceVariable(formula, oldVar, newVar) {
-    // Match symbol (like `q`) only when it's not in a larger word (like `sqrt`)
-    let regex = new RegExp(`(?<![a-zA-Z])${oldVar}(?![a-zA-Z])`, 'g');
-    return formula.replace(regex, newVar);
-}
+  
+    // Guard: q must be positive finite
+    qValue = Number.isFinite(qValue) && qValue > 0 ? qValue : MIN_POSITIVE_Q;
+  
+    // Return log10(q)
+    return finiteOr(Math.log10(qValue), MIN_LOG10_Q);
+  }  
 
 // returns the fractional representation of the percentage input
 // -20% -> 0.8, +30% -> 1.3
 export function percentageToFraction(percentage) {
     return 1 + percentage / 100;
 }
+
+// Flexible qubit→problem size mapping helpers
+// (reuses the top-level `import * as math from 'mathjs'` above)
+
+// These are the original dropdown options + brace-less equivalents
+const BUILTIN_QUBIT_MAPPINGS = new Set([
+    "2^{q}",
+    "{q}",
+    "q",     
+    "log({q})",
+    "log(q)",   
+    "2^(2^{q})"   // huge; we always cap this in evaluation
+]);
+  
+  
+// Turn a user expression like "{q}^3 + {q}*log({q})" (or "q^3 + q*log(q)") into f(q) -> number
+export function compileQubitMapping(expr) {
+    const normalized = normalizeQubitMapping(String(expr || ""));
+    const node = math.parse(normalized);
+    const compiled = node.compile();
+    return (q) => compiled.evaluate({ q });
+}
+    
+  
+export function evaluateQubitMapping(
+    expr,
+    q,
+    {
+      allowNonPositive = false,
+      clamp = 1e300   // big enough to show “very large” but still finite
+    } = {}
+  ) {
+    const raw = String(expr || "").trim();
+    const norm = normalizeQubitMapping(raw);
+  
+    // 1) handle known presets explicitly so they never go red
+    if (isBuiltinQubitMapping(norm)) {
+      let value;
+      switch (norm) {
+        case "2^{q}": {
+          // grows fast → cap if needed
+          const candidate = Math.pow(2, q);
+          value = Number.isFinite(candidate) ? candidate : clamp;
+          break;
+        }
+        case "{q}":
+        case "q": {
+          value = q;
+          break;
+        }
+        case "log({q})":
+        case "log(q)": {
+          // keep base-10 semantics for the preset log
+          if (q <= 0) {
+            return { ok: false, error: "Expression evaluated to a non-positive number" };
+          }
+          value = Math.log10(q);
+          break;
+        }
+        case "2^(2^{q})": {
+          // astronomically large by design → always cap
+          value = clamp;
+          break;
+        }
+      }
+  
+      if (!Number.isFinite(value)) {
+        return { ok: false, error: "Expression did not produce a finite number" };
+      }
+      if (value <= 0 && !allowNonPositive) {
+        return { ok: false, error: "Expression evaluated to a non-positive number" };
+      }
+      return { ok: true, value };
+    }
+  
+    // 2) user-provided expression (any math.js expression; braces optional)
+    try {
+      const fn = compileQubitMapping(norm);
+      let value = fn(q);
+  
+      if (!Number.isFinite(value)) {
+        // if it blew up, try clamping instead of rejecting
+        value = clamp;
+      }
+  
+      if (value <= 0 && !allowNonPositive) {
+        return { ok: false, error: "Expression evaluated to a non-positive number" };
+      }
+  
+      return { ok: true, value };
+    } catch (e) {
+      return { ok: false, error: e?.message || "Parse error" };
+    }
+  }
+  

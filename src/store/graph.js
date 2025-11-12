@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed, inject, watch } from 'vue'
 
 import { useInputStore } from './input'
+import { evaluateQubitMapping } from './utils'
 
 let qaCache = {
     "n_sqrt(n)__6": 

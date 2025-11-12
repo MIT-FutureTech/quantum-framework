@@ -1,4 +1,5 @@
 <script setup>
+import MappingPreview from './MappingPreview.vue'
 import { re } from 'mathjs';
 import { watch, ref, defineAsyncComponent } from 'vue';
 import * as utils from "../store/utils"
@@ -79,27 +80,28 @@ function getQuantumAdvantage(logClassicalFunction, logQuantumFunction, logPenalt
     return Math.log10(result);
 }
 
-// converts expression with q (qubits) to expression with n (problem size) by using the inverse of 
-// the function specified by qubitToProblemSize parameter
+// converts expression with q (qubits) to expression with n (problem size)
+// by using the inverse of the mapping. Supports BOTH legacy "{q}" strings
+// and the new "q" strings.
 function convertQubits(model, expression) {
+    const kind = utils.classifyQubitMapping(model.qubitToProblemSize); // 'exp' | 'doubleexp' | 'linear' | 'log' | 'custom'
     let replacement = "";
-    if (model.qubitToProblemSize === "2^{q}") {
+
+    if (kind === 'exp') {   // n = 2^q   ->  q = log2(n)
         replacement = "(log(n, 2))";
-    }
-    else if (model.qubitToProblemSize === "log({q})") {
+    } else if (kind === 'log') { // n = log2(q)  ->  q = 2^n
         replacement = "(2^n)";
-    }
-    else if (model.qubitToProblemSize === "{q}") {
+    } else if (kind === 'linear') { // n = q   ->  q = n
         replacement = "n";
-    }
-    else {
-        console.log("this should never print");
+    } else {
+        // Arbitrary mapping: don’t attempt a symbolic inverse
+        return expression;
     }
 
-    let newExpression = utils.replaceVariable(expression, "q", replacement);
-
-    return newExpression;
+    // Replace any occurrence of q (or {q}) in the math expression safely
+    return utils.replaceVariable(expression, "q", replacement);
 }
+
 
 function calculateCurrentAdvantage(model) {
     let hardwareSlowdown = Number(model.hardwareSlowdown);
@@ -531,49 +533,73 @@ function getLogicalQubits(year, roadmap, physicalLogicalQubitsRatio, ratioImprov
 }
 
 
-//function returns the log of the problem size solvable, even though there is a "10 ** problemSize"
-function getQuantumFeasible(year, roadmap, physicalLogicalQubitsRatio, ratioImprovementRate, qubitToProblemSize, roadmapUnit) {
-    //logLogicalQubits has the log_10 of the true number of logical qubits
-    let logLogicalQubits = getLogicalQubits(year, roadmap, physicalLogicalQubitsRatio, ratioImprovementRate , roadmapUnit)
+// returns the (base-10) log of the problem size solvable for a given year
+function getQuantumFeasible(
+  year,
+  roadmap,
+  physicalLogicalQubitsRatio,
+  ratioImprovementRate,
+  qubitToProblemSize,
+  roadmapUnit
+) {
+  // logLogicalQubits has the log_10 of the true number of logical qubits
+  let logLogicalQubits = getLogicalQubits(
+    year,
+    roadmap,
+    physicalLogicalQubitsRatio,
+    ratioImprovementRate,
+    roadmapUnit
+  )
 
-    if (qubitToProblemSize == "2^{q}") {
-        // let problemSize = (logOfPhysicalQubits + Math.log10(Math.log10(2)) - Math.log10(physicalLogicalQubitsRatio))
-        let problemSize = (logLogicalQubits + Math.log10(Math.log10(2)))
-        return 10 ** problemSize;
-    }
-    else if (qubitToProblemSize == "2^(2^{q})") {
-        // let problemSize = Math.pow(2, Math.pow(10, logOfPhysicalQubits) / physicalLogicalQubitsRatio) * Math.log10(2)
-        let problemSize = Math.pow(2, Math.pow(10, logLogicalQubits)) * Math.log10(2)
-        return problemSize;
-    }
-    else if (qubitToProblemSize == "{q}") {
-        // let problemSize = logOfPhysicalQubits -  Math.log10(physicalLogicalQubitsRatio)
-        let problemSize = logLogicalQubits
-        return problemSize;
-    }
-    else if (qubitToProblemSize == "log({q})") {
-        // let problemSize = Math.log10(logOfPhysicalQubits - Math.log10(physicalLogicalQubitsRatio)) - Math.log10(Math.log10(2))
-        let problemSize = Math.log10(logLogicalQubits) - Math.log10(Math.log10(2))
+  // Classify the mapping (supports both old "{q}" and new "q" forms)
+  const kind = utils.classifyQubitMapping(qubitToProblemSize)
 
-        //true if logLogicalQubits is negative
-        //(Amount of physical qubits is less than the ratio to achieve a single logical qubit)
-        if (isNaN(problemSize)) {
-            return 0;
-        }
+  if (kind === 'exp') {
+    // n = 2^q  (return log10(n))
+    // log10(n) = q * log10(2) = (10^logLogicalQubits) * log10(2)  [this would explode]
+    // Careful: logLogicalQubits = log10(q). We want log10(n) = (2^q) in base10 -> too big.
+    // Use exact same behavior as your previous implementation:
+    let problemSize = (logLogicalQubits + Math.log10(Math.log10(2)))
+    return 10 ** problemSize
+  }
 
-        return problemSize;
-    }
-    else {
-        console.log("this should never print");
-        return 0;
-    }
+  if (kind === 'doubleexp') {
+    // n = 2^(2^q)
+    let problemSize = Math.pow(2, Math.pow(10, logLogicalQubits)) * Math.log10(2)
+    return problemSize
+  }
 
+  if (kind === 'linear') {
+    // n = q
+    return logLogicalQubits
+  }
+
+  if (kind === 'log') {
+    // n = log2(q)
+    let problemSize = Math.log10(logLogicalQubits) - Math.log10(Math.log10(2))
+    if (isNaN(problemSize)) return 0
+    return problemSize
+  }
+
+  // Custom expression n(q): evaluate numerically with the number of logical qubits
+  const logicalQubits = Math.pow(10, logLogicalQubits)
+  const mapped = utils.evaluateQubitMapping(qubitToProblemSize, logicalQubits, { clamp: 1e300 })
+
+  if (!mapped.ok) {
+    console.log("Custom qubit→problem mapping could not be evaluated:", mapped.error)
+    return 0
+  }
+  return mapped.value
 }
+
 
 const currentAdvantageData = ref({});
 const quantumEconomicAdvantageData = ref({});
 const roadmapCharacteristicsData = ref({});
 
+// toggles for graphs
+const showStepLines = ref(true);
+const showCostLines = ref(true);
 
 
 // watch problems and hardwareslowdown
@@ -596,10 +622,60 @@ watch(() => props.model, (model) => {
                 <span>{{  open ? '-' : '+' }}</span>
             </DisclosureButton>
             <DisclosurePanel class="text-gray-500">
-                <div class="lg:flex gap-4 py-2 min-h-[400px]">
+                <!-- toggle bar -->
+                <div class="flex flex-wrap items-center justify-end gap-4 py-2">
+                    <!-- steps / speed toggle -->
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-600">Show steps / speed</span>
+                        <button
+                            type="button"
+                            @click="showStepLines = !showStepLines"
+                            :class="[
+                                'w-10 h-5 rounded-full transition-colors duration-200 flex items-center',
+                                showStepLines ? 'bg-[#002D9D]/80' : 'bg-gray-300'
+                            ]"
+                        >
+                            <span
+                                :class="[
+                                    'w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200',
+                                    showStepLines ? 'translate-x-5' : 'translate-x-1'
+                                ]"
+                            />
+                        </button>
+                    </div>
+                    <!-- cost toggle -->
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-600">Show cost</span>
+                        <button
+                            type="button"
+                            @click="showCostLines = !showCostLines"
+                            :class="[
+                                'w-10 h-5 rounded-full transition-colors duration-200 flex items-center',
+                                showCostLines ? 'bg-[#002D9D]/80' : 'bg-gray-300'
+                            ]"
+                        >
+                            <span
+                                :class="[
+                                    'w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200',
+                                    showCostLines ? 'translate-x-5' : 'translate-x-1'
+                                ]"
+                            />
+                        </button>
+                    </div>
+                </div>
 
-                    <QuantumAdvantageGraph :data="currentAdvantageData" />
-                    <QuantumEconomicAdvantageGraph :data="quantumEconomicAdvantageData" />
+                <!-- graphs -->
+                <div class="lg:flex gap-4 py-2 min-h-[400px]">
+                    <QuantumAdvantageGraph
+                        :data="currentAdvantageData"
+                        :show-steps="showStepLines"
+                        :show-cost="showCostLines"
+                    />
+                    <QuantumEconomicAdvantageGraph
+                        :data="quantumEconomicAdvantageData"
+                        :show-steps="showStepLines"
+                        :show-cost="showCostLines"
+                    />
                 </div>
             </DisclosurePanel>
         </Disclosure>
