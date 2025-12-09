@@ -232,7 +232,7 @@ watch(() => [props.showSteps, props.showCost], () => {
 
 function updateGraph() {
     if (!data) return;
-    
+
     if (data.tStar <= 0) {
         chartOptions.yAxis.max = 100
     } else {
@@ -506,11 +506,17 @@ function updateGraph() {
 
     chartOptions.series = series
 
+        // build annotations only if at least one toggle is on
+    if (!props.showSteps && !props.showCost) {
+        chartOptions.annotations = [];
+        return;
+    }
+
     chartOptions.annotations = [
         {
             allowOverlap: true,
             draggable: "",
-            labelrank: data.tStar <= data.tCostStar ? 1 : 0,
+            labelrank: props.showCost && data.tStar <= data.tCostStar ? 1 : 0,
             labelOptions: {
                 backgroundColor: "transparent",
                 borderColor: "transparent",
@@ -520,19 +526,16 @@ function updateGraph() {
                 fontColor: 'black',
                 rotation: -25
             },
-            labels: [
+            labels: props.showCost ? [
                 {
-                    point: {
-                        x: data.costAdvantageAreaMid[0],
-                        y: data.costAdvantageAreaMid[1],
-                        xAxis: 0,
-                        yAxis: 0
-                    },
+                    point: { x: data.costAdvantageAreaMid[0], y: data.costAdvantageAreaMid[1], xAxis: 0, yAxis: 0 },
                     color: 'black',
                     x: data.maxX * 0.5,
                     y: data.maxY * 0.1,
                     useHTML: true,
-                    text: data.tStar <= data.tCostStar ? '<b class="">Quantum<br>Economic Advantage:</b><br>Faster and Cheaper' : 'Quantum cheaper',
+                    text: data.tStar <= data.tCostStar
+                        ? '<b class="">Quantum<br>Economic Advantage:</b><br>Faster and Cheaper'
+                        : 'Quantum cheaper',
                     style: {
                         color: 'rgba(48,158,244,.9)',
                         fontSize: '12px',
@@ -541,12 +544,12 @@ function updateGraph() {
                         pointerEvents: 'none'
                     },
                 },
-            ]
+            ] : []
         },
         {
             allowOverlap: true,
             draggable: "",
-            labelrank: data.tStar > data.tCostStar ? 1 : 0,
+            labelrank: props.showSteps && data.tStar > data.tCostStar ? 1 : 0,
             labelOptions: {
                 backgroundColor: "transparent",
                 borderColor: "transparent",
@@ -555,19 +558,16 @@ function updateGraph() {
                 fontSize: '12px',
                 fontColor: 'black',
             },
-            labels: [
+            labels: props.showSteps ? [
                 {
-                    point: {
-                        x: data.advantageAreaMid[0],
-                        y: data.advantageAreaMid[1],
-                        xAxis: 0,
-                        yAxis: 0
-                    },
+                    point: { x: data.advantageAreaMid[0], y: data.advantageAreaMid[1], xAxis: 0, yAxis: 0 },
                     x: data.maxX * 0.5,
                     y: data.maxY * 0.1,
                     color: 'black',
                     useHTML: true,
-                    text: data.tStar >= data.tCostStar ? '<b class="">Quantum<br>Economic Advantage:</b><br>Faster and Cheaper' : 'Quantum faster',
+                    text: data.tStar >= data.tCostStar
+                        ? '<b class="">Quantum<br>Economic Advantage:</b><br>Faster and Cheaper'
+                        : 'Quantum faster',
                     style: {
                         fontSize: '12px',
                         fontWeight: '',
@@ -576,9 +576,9 @@ function updateGraph() {
                         pointerEvents: 'none'
                     },
                 },
-            ]
+            ] : []
         },
-    ].sort((a, b) => b.labelrank - a.labelrank);
+    ].filter(a => a.labels && a.labels.length > 0)
 }
 </script>
 

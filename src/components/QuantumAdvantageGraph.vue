@@ -205,56 +205,64 @@ watch(() => [props.showSteps, props.showCost], () => {
 function updateGraphData() {
     if (!data) return;
 
-    chartOptions.title.text = data.graphTitle
+    chartOptions.title.text = data.graphTitle;
+    chartOptions.plotOptions.series.label.connectorAllowed = false;
 
-    chartOptions.plotOptions.series.label.connectorAllowed = false
+    chartOptions.xAxis.max = data.maxX;
+    chartOptions.yAxis.max = data.maxY;
 
-    chartOptions.xAxis.max = data.maxX
-    chartOptions.yAxis.max = data.maxY
+    // --- shaded regions depend on toggles ---
+    chartOptions.xAxis.plotBands = [];
 
-    chartOptions.xAxis.plotBands = []
+    if (props.showSteps && Number.isFinite(data.nStar)) {
+        chartOptions.xAxis.plotBands.push({
+            from: data.nStar,
+            to: data.nStar > data.nCostStar ? data.maxX : data.nCostStar,
+            color: {
+                linearGradient: { x1: 0, x2: 0, y1: 0, y2: 1 },
+                stops: [
+                    [0, 'rgba(219,234,254,.2)'],
+                    [1, 'rgba(0,45,157,.3)'],
+                ]
+            },
+        });
+    }
 
-    chartOptions.xAxis.plotBands.push({
-        from: data.nStar,
-        to: data.nStar > data.nCostStar ? data.maxX : data.nCostStar,
-        color: {
-            linearGradient: { x1: 0, x2: 0, y1: 0, y2: 1 },
-            stops: [
-                [0, 'rgba(219,234,254,.2)'],
-                [1, 'rgba(0,45,157,.3)'],
-            ]
-        },
-    })
-    chartOptions.xAxis.plotBands.push({
-        from: data.nCostStar,
-        to: data.nStar <= data.nCostStar ? data.maxX : data.nStar,
-        color: '#0000FF55',
-        color: {
-            linearGradient: { x1: 0, x2: 0, y1: 0, y2: 1 },
-            stops: [
-                [0, 'rgba(219,234,254,.2)'],
-                [1, 'rgba(48,158,244,.3)'],
-            ]
-        },
-    })
-    chartOptions.xAxis.plotLines = []
-    chartOptions.xAxis.plotLines.push({
-        value: data.nStar,
-        width: 1,
-        color: 'rgba(0,45,157,.5)',
+    if (props.showCost && Number.isFinite(data.nCostStar)) {
+        chartOptions.xAxis.plotBands.push({
+            from: data.nCostStar,
+            to: data.nStar <= data.nCostStar ? data.maxX : data.nStar,
+            color: {
+                linearGradient: { x1: 0, x2: 0, y1: 0, y2: 1 },
+                stops: [
+                    [0, 'rgba(219,234,254,.2)'],
+                    [1, 'rgba(48,158,244,.3)'],
+                ]
+            },
+        });
+    }
 
-       
-    })
-    chartOptions.xAxis.plotLines.push({
-        value: data.nCostStar,
-        width: 1,
-        color: 'rgba(48,158,244,.5)',
-        
-    })
+    // --- vertical guide lines depend on toggles ---
+    chartOptions.xAxis.plotLines = [];
+    if (props.showSteps && Number.isFinite(data.nStar)) {
+        chartOptions.xAxis.plotLines.push({
+            value: data.nStar,
+            width: 1,
+            color: 'rgba(0,45,157,.5)',
+        });
+    }
+    if (props.showCost && Number.isFinite(data.nCostStar)) {
+        chartOptions.xAxis.plotLines.push({
+            value: data.nCostStar,
+            width: 1,
+            color: 'rgba(48,158,244,.5)',
+        });
+    }
 
-        const series = [];
+    // --- series depend on toggles ---
+    const series = [];
 
-    // --- steps / speed lines ---
+    // steps / speed lines + speed star
     if (props.showSteps) {
         series.push({
             name: 'Classical Steps',
@@ -319,9 +327,24 @@ function updateGraphData() {
                 symbol: 'circle'
             }
         });
+
+        // speed star point
+        series.push({
+            name: 'Quantum Advantage',
+            data: [[data.nStar, data.stepStar]],
+            color: 'rgba(0,45,157,1)',
+            type: 'scatter',
+            maxPointWidth: 1,
+            marker: {
+                enabled: true,
+                symbol: 'circle'
+            },
+            enableMouseTracking: false,
+            showInLegend: false
+        });
     }
 
-    // --- cost lines ---
+    // cost lines + cost star
     if (props.showCost) {
         series.push({
             name: 'Classical Cost',
@@ -333,7 +356,7 @@ function updateGraphData() {
                     verticalAlign: 'middle',
                     overflow: true,
                     crop: false,
-                    color: 'rgba(0,255,0,1)', //Andrew should choose a better color
+                    color: 'rgba(0,255,0,1)', // Andrew: tweak color if desired
                     shadow: false,
                     style: {
                         fontSize: '12px',
@@ -396,44 +419,46 @@ function updateGraphData() {
                 symbol: 'circle'
             }
         });
+
+        // cost star point
+        series.push({
+            name: 'Quantum Cost Advantage',
+            data: [[data.nCostStar, data.stepCostStar]],
+            color: 'rgba(48,158,244,1)',
+            type: 'scatter',
+            maxPointWidth: 1,
+            marker: {
+                enabled: true,
+                symbol: 'circle'
+            },
+            enableMouseTracking: false,
+            showInLegend: false
+        });
     }
-
-    // --- always show the two anchor scatter points ---
-    series.push({
-        name: 'Quantum Cost Advantage',
-        data: [[data.nCostStar, data.stepCostStar]],
-        color: 'rgba(48,158,244,1)',
-        type: 'scatter',
-        maxPointWidth: 1,
-        marker: {
-            enabled: true,
-            symbol: 'circle'
-        },
-        enableMouseTracking: false,
-        showInLegend: false
-    });
-
-    series.push({
-        name: 'Quantum Advantage',
-        data: [[data.nStar, data.stepStar]],
-        color: 'rgba(0,45,157,1)',
-        type: 'scatter',
-        maxPointWidth: 1,
-        marker: {
-            enabled: true,
-            symbol: 'circle'
-        },
-        enableMouseTracking: false,
-        showInLegend: false
-    });
 
     chartOptions.series = series;
 
+    // --- keep empty graph visible when both toggles are off ---
+    if (!props.showSteps && !props.showCost) {
+        // Highcharts hides the graph if there are no series,
+        // so we add a fully invisible dummy series.
+        chartOptions.series = [
+            {
+                name: 'empty',
+                data: [],
+                color: 'transparent',
+                enableMouseTracking: false,
+                showInLegend: false
+            }
+        ];
+    }
 
-    chartOptions.annotations = [
 
-       
-        {
+    // --- annotations: only show labels for active toggles ---
+    const annotations = [];
+
+    if (props.showCost) {
+        annotations.push({
             draggable: "",
             labelOptions: {
                 backgroundColor: "transparent",
@@ -443,7 +468,6 @@ function updateGraphData() {
                 fontSize: '12px',
                 fontColor: 'black',
                 zIndex: 0,
-
             },
             labels: [
                 {
@@ -453,23 +477,33 @@ function updateGraphData() {
                         xAxis: 0,
                         yAxis: 0
                     },
-                    align: (data.nStar >= data.nCostStar && (Math.abs(data.nCostStar - data.nStar) / data.maxX) < 0.13) ? 'right' : 'left',
+                    align: (data.nStar >= data.nCostStar &&
+                           (Math.abs(data.nCostStar - data.nStar) / data.maxX) < 0.13)
+                        ? 'right'
+                        : 'left',
                     color: 'black',
                     useHTML: true,
-                    text: '<b>'+utils.toBase10HTML(data.nCostStar.toFixed(1))+'</b>' + (data.nStar >= data.nCostStar ? '<br>Quantum<br>Cheaper' : '<br>Quantum<br>Faster and Cheaper'),
-
+                    text:
+                        '<b>' + utils.toBase10HTML(data.nCostStar.toFixed(1)) + '</b>' +
+                        (data.nStar >= data.nCostStar
+                            ? '<br>Quantum<br>Cheaper'
+                            : '<br>Quantum<br>Faster and Cheaper'),
                     style: {
                         fontSize: '14px',
-                        
-                        pointerEvents: 'none',  // Disable pointer events
-
-                        color: 'rgba(48,158,244,1)',  // Sets the text color to black
-                        textAlign: (data.nStar >= data.nCostStar && (Math.abs(data.nCostStar - data.nStar) / data.maxX) < 0.13) ? 'right' : 'left',
+                        pointerEvents: 'none',
+                        color: 'rgba(48,158,244,1)',
+                        textAlign: (data.nStar >= data.nCostStar &&
+                                   (Math.abs(data.nCostStar - data.nStar) / data.maxX) < 0.13)
+                            ? 'right'
+                            : 'left',
                     },
                 },
             ]
-        },
-        {
+        });
+    }
+
+    if (props.showSteps) {
+        annotations.push({
             draggable: "",
             labelOptions: {
                 backgroundColor: "transparent",
@@ -480,7 +514,6 @@ function updateGraphData() {
                 fontColor: 'black',
                 rotation: -25,
                 allowOverlap: true
-
             },
             labels: [
                 {
@@ -491,25 +524,31 @@ function updateGraphData() {
                         yAxis: 0
                     },
                     color: 'black',
-                    align: (data.nStar < data.nCostStar && (Math.abs(data.nCostStar - data.nStar) / data.maxX) < 0.13) ? 'right' : 'left',
-
+                    align: (data.nStar < data.nCostStar &&
+                           (Math.abs(data.nCostStar - data.nStar) / data.maxX) < 0.13)
+                        ? 'right'
+                        : 'left',
                     useHTML: true,
-                    text: '<b>'+utils.toBase10HTML(data.nStar.toFixed(1))+'</b>' + (data.nStar < data.nCostStar ? '<br>Quantum<br>Faster' : '<br>Quantum<br>Faster and Cheaper'),
+                    text:
+                        '<b>' + utils.toBase10HTML(data.nStar.toFixed(1)) + '</b>' +
+                        (data.nStar < data.nCostStar
+                            ? '<br>Quantum<br>Faster'
+                            : '<br>Quantum<br>Faster and Cheaper'),
                     style: {
                         fontSize: '14px',
-                        pointerEvents: 'none',  // Disable pointer events
-
-                        color: 'rgba(0,45,157,1)',  // Sets the text color to black
-                        textAlign: (data.nStar < data.nCostStar && (Math.abs(data.nCostStar - data.nStar) / data.maxX) < 0.13) ? 'right' : 'left',
-
+                        pointerEvents: 'none',
+                        color: 'rgba(0,45,157,1)',
+                        textAlign: (data.nStar < data.nCostStar &&
+                                   (Math.abs(data.nCostStar - data.nStar) / data.maxX) < 0.13)
+                            ? 'right'
+                            : 'left',
                     },
                 },
             ]
-        }
+        });
+    }
 
-
-
-    ]
+    chartOptions.annotations = annotations;
 }
 
 </script>
