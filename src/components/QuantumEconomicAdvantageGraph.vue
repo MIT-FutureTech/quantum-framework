@@ -506,7 +506,7 @@ function updateGraph() {
 
     chartOptions.series = series
 
-        // build annotations only if at least one toggle is on
+    // build annotations only if at least one toggle is on
     if (!props.showSteps && !props.showCost) {
         chartOptions.annotations = [];
         return;

@@ -43,12 +43,12 @@ function getQuantumAdvantage(logClassicalFunction, logQuantumFunction, logPenalt
     effectiveProcessors = math.max(effectiveProcessors, 0);
 
     function evaluate(n) {
-        let scope = {n: n, p: Math.pow(10, effectiveProcessors)};
+        let scope = { n: n, p: Math.pow(10, effectiveProcessors) };
         let value = logClassicalFunction(n, scope) - logQuantumFunction(n) - logPenaltyFunction(n) - adjustmentFactor;
         return value;
     }
 
-    let upperBound = 10**100;
+    let upperBound = 10 ** 100;
     let lowerBound = 2;
     let lastValue = evaluate(lowerBound);
     while (lowerBound < 50 && lastValue >= 0) {
@@ -71,7 +71,7 @@ function getQuantumAdvantage(logClassicalFunction, logQuantumFunction, logPenalt
     else if (result == Infinity) {
         return Infinity;
     }
-    
+
 
     // if (lowerBound > 2) {
     //     console.log(`Final lowerBound guess was ${lowerBound}`);
@@ -114,12 +114,12 @@ function calculateCurrentAdvantage(model) {
     let penaltyInput = convertQubits(model, model.penaltyInput);
 
     let processors = model.processors;
-    
+
     //lcf = logged classical function
     let lcf = utils.createLoggedFunction(classicalRuntimeInput);
     let lqf = utils.createLoggedFunction(quantumRuntimeInput);
     let lpf = utils.createLoggedFunction(penaltyInput);
-    
+
     //ccf = converted classical function
     let ccf = utils.createConvertedFunction(classicalRuntimeInput);
     let cqf = utils.createConvertedFunction(quantumRuntimeInput);
@@ -129,7 +129,7 @@ function calculateCurrentAdvantage(model) {
     let lcfc = utils.createLoggedFunction(model.classicalWork);
     let quantumWork = convertQubits(model, model.quantumWork);
     let lqfc = utils.createLoggedFunction(quantumWork);
-    
+
     //ccfc = converted classical function cost
     let ccfc = utils.createConvertedFunction(model.classicalWork);
     let cqfc = utils.createConvertedFunction(quantumWork);
@@ -187,7 +187,7 @@ function calculateCurrentAdvantage(model) {
         }
         currentAdvantageDataAux = {
             nStar: advantage,
-            stepStar: ccf(advantage, {n: advantage, p: Math.pow(10, processors)}),
+            stepStar: ccf(advantage, { n: advantage, p: Math.pow(10, processors) }),
             nCostStar: -1,
             stepCostStar: -1,
         }
@@ -211,7 +211,7 @@ function calculateCurrentAdvantage(model) {
 
         currentAdvantageDataAux = {
             nStar: advantage,
-            stepStar: ccf(advantage, {n: advantage, p: Math.pow(10, processors)}),
+            stepStar: ccf(advantage, { n: advantage, p: Math.pow(10, processors) }),
             nCostStar: costAdvantage,
             stepCostStar: ccfc(costAdvantage),
         }
@@ -224,7 +224,7 @@ function calculateCurrentAdvantage(model) {
     currentAdvantageDataAux = {
         ...currentAdvantageDataAux,
         quantumSteps: range.map((i) => [i, cqf(i) + cpf(i) + hardwareSlowdown]).map(([x, y]) => [x, y === NaN ? 99999 : y]),
-        classicalSteps: range.map((i) => [i, ccf(i, {n: i, p: Math.pow(10, processors)})]).map(([x, y]) => [x, isNaN(y) ? -1 : y]),
+        classicalSteps: range.map((i) => [i, ccf(i, { n: i, p: Math.pow(10, processors) })]).map(([x, y]) => [x, isNaN(y) ? -1 : y]),
         quantumCostSteps: range.map((i) => [i, cqfc(i) + cpf(i) + costFactor]).map(([x, y]) => [x, y === NaN ? 99999 : y]),
         classicalCostSteps: range.map((i) => [i, ccfc(i)]).map(([x, y]) => [x, isNaN(y) ? -1 : y])
     }
@@ -233,7 +233,8 @@ function calculateCurrentAdvantage(model) {
     // console.log("printing current advantages");
     // console.log(advantage, costAdvantage);
 
-    currentAdvantageData.value =  {...currentAdvantageDataAux,
+    currentAdvantageData.value = {
+        ...currentAdvantageDataAux,
         problemName: model.problemName,
     }
 }
@@ -256,11 +257,11 @@ function calculateQuantumEconomicAdvantage(model) {
     let lcf = utils.createLoggedFunction(classicalRuntimeInput);
     let lqf = utils.createLoggedFunction(quantumRuntimeInput);
     let lpf = utils.createLoggedFunction(penaltyInput);
-    
+
     //lcfc = logged classical function cost
     let lcfc = utils.createLoggedFunction(model.classicalWork);
     let lqfc = utils.createLoggedFunction(convertQubits(model, model.quantumWork));
-    
+
 
     let costFactor = (Number(model.costFactor))
     let costImprovementRate = utils.percentageToFraction(Number(model.costImprovementRate));
@@ -278,7 +279,7 @@ function calculateQuantumEconomicAdvantage(model) {
 
 
     let quantumFeasible = qf(model.roadmap);
-    
+
     let quantumAdvantage = qa(lcf, lqf, lpf, hardwareSlowdown, quantumImprovementRate);
     let quantumCostAdvantage = qa(lcfc, lqfc, lpf, costFactor, costImprovementRate);
 
@@ -368,8 +369,8 @@ function calculateQuantumEconomicAdvantage(model) {
 
     let range = [];
     for (let i = 0; i < yearRadius * 2; i += yearRadius / 100) {
-    // for (let i = 0; i < yearRadius * 250; i += yearRadius / 100) {
-    // for (let i = 0; i < yearRadius * 250; i += yearRadius / 10) {
+        // for (let i = 0; i < yearRadius * 250; i += yearRadius / 100) {
+        // for (let i = 0; i < yearRadius * 250; i += yearRadius / 10) {
         range.push(i);
     }
 
@@ -423,7 +424,7 @@ function calculateQuantumEconomicAdvantage(model) {
     //             quantumFeasible: quantumFeasibleList,
     //             quantumAdvantage: quantumAdvantageList
     //         }
-            
+
     //     } else {
     //         console.log("tstar is null")
     //         for (let i = 0; i < (2030 - currentYear) * 2; i += (2030 - currentYear) / 100) {
@@ -437,7 +438,7 @@ function calculateQuantumEconomicAdvantage(model) {
     //             quantumFeasible: quantumFeasibleList,
     //             quantumAdvantage: quantumAdvantageList
     //         }
-           
+
     //     }
     // }
 
@@ -496,7 +497,8 @@ function calculateQuantumEconomicAdvantage(model) {
     // }
 
 
-    quantumEconomicAdvantageData.value = {...quantumEconomicAdvantageDataAux,
+    quantumEconomicAdvantageData.value = {
+        ...quantumEconomicAdvantageDataAux,
         problemName: model.problemName,
     }
 
@@ -515,7 +517,7 @@ function calculateQuantumEconomicAdvantage(model) {
 
 
 //returns the log_10 of the amount of logical qubits available with the given parameters
-function getLogicalQubits(year, roadmap, physicalLogicalQubitsRatio, ratioImprovementRate , roadmapUnit) {
+function getLogicalQubits(year, roadmap, physicalLogicalQubitsRatio, ratioImprovementRate, roadmapUnit) {
     const logOfPhysicalQubits = utils.getPhysicalQubits(year, roadmap, props.model.extrapolationType)
     if (roadmapUnit === "logical") {
         return logOfPhysicalQubits
@@ -535,61 +537,61 @@ function getLogicalQubits(year, roadmap, physicalLogicalQubitsRatio, ratioImprov
 
 // returns the (base-10) log of the problem size solvable for a given year
 function getQuantumFeasible(
-  year,
-  roadmap,
-  physicalLogicalQubitsRatio,
-  ratioImprovementRate,
-  qubitToProblemSize,
-  roadmapUnit
-) {
-  // logLogicalQubits has the log_10 of the true number of logical qubits
-  let logLogicalQubits = getLogicalQubits(
     year,
     roadmap,
     physicalLogicalQubitsRatio,
     ratioImprovementRate,
+    qubitToProblemSize,
     roadmapUnit
-  )
+) {
+    // logLogicalQubits has the log_10 of the true number of logical qubits
+    let logLogicalQubits = getLogicalQubits(
+        year,
+        roadmap,
+        physicalLogicalQubitsRatio,
+        ratioImprovementRate,
+        roadmapUnit
+    )
 
-  // Classify the mapping (supports both old "{q}" and new "q" forms)
-  const kind = utils.classifyQubitMapping(qubitToProblemSize)
+    // Classify the mapping (supports both old "{q}" and new "q" forms)
+    const kind = utils.classifyQubitMapping(qubitToProblemSize)
 
-  if (kind === 'exp') {
-    // n = 2^q  (return log10(n))
-    // log10(n) = q * log10(2) = (10^logLogicalQubits) * log10(2)  [this would explode]
-    // Careful: logLogicalQubits = log10(q). We want log10(n) = (2^q) in base10 -> too big.
-    // Use exact same behavior as your previous implementation:
-    let problemSize = (logLogicalQubits + Math.log10(Math.log10(2)))
-    return 10 ** problemSize
-  }
+    if (kind === 'exp') {
+        // n = 2^q  (return log10(n))
+        // log10(n) = q * log10(2) = (10^logLogicalQubits) * log10(2)  [this would explode]
+        // Careful: logLogicalQubits = log10(q). We want log10(n) = (2^q) in base10 -> too big.
+        // Use exact same behavior as your previous implementation:
+        let problemSize = (logLogicalQubits + Math.log10(Math.log10(2)))
+        return 10 ** problemSize
+    }
 
-  if (kind === 'doubleexp') {
-    // n = 2^(2^q)
-    let problemSize = Math.pow(2, Math.pow(10, logLogicalQubits)) * Math.log10(2)
-    return problemSize
-  }
+    if (kind === 'doubleexp') {
+        // n = 2^(2^q)
+        let problemSize = Math.pow(2, Math.pow(10, logLogicalQubits)) * Math.log10(2)
+        return problemSize
+    }
 
-  if (kind === 'linear') {
-    // n = q
-    return logLogicalQubits
-  }
+    if (kind === 'linear') {
+        // n = q
+        return logLogicalQubits
+    }
 
-  if (kind === 'log') {
-    // n = log2(q)
-    let problemSize = Math.log10(logLogicalQubits) - Math.log10(Math.log10(2))
-    if (isNaN(problemSize)) return 0
-    return problemSize
-  }
+    if (kind === 'log') {
+        // n = log2(q)
+        let problemSize = Math.log10(logLogicalQubits) - Math.log10(Math.log10(2))
+        if (isNaN(problemSize)) return 0
+        return problemSize
+    }
 
-  // Custom expression n(q): evaluate numerically with the number of logical qubits
-  const logicalQubits = Math.pow(10, logLogicalQubits)
-  const mapped = utils.evaluateQubitMapping(qubitToProblemSize, logicalQubits, { clamp: 1e300 })
+    // Custom expression n(q): evaluate numerically with the number of logical qubits
+    const logicalQubits = Math.pow(10, logLogicalQubits)
+    const mapped = utils.evaluateQubitMapping(qubitToProblemSize, logicalQubits, { clamp: 1e300 })
 
-  if (!mapped.ok) {
-    console.log("Custom qubit→problem mapping could not be evaluated:", mapped.error)
-    return 0
-  }
-  return mapped.value
+    if (!mapped.ok) {
+        console.log("Custom qubit→problem mapping could not be evaluated:", mapped.error)
+        return 0
+    }
+    return mapped.value
 }
 
 
@@ -617,9 +619,10 @@ watch(() => props.model, (model) => {
             <Form :modelId="model.id" />
         </div>
         <Disclosure as="div" class="px-8 py-2" v-slot="{ open }" defaultOpen>
-            <DisclosureButton class="py-2 bg-gray-100 text-gray-600 hover:bg-gray-200 text-left px-4 rounded-md flex justify-between w-full border border-gray-200">
+            <DisclosureButton
+                class="py-2 bg-gray-100 text-gray-600 hover:bg-gray-200 text-left px-4 rounded-md flex justify-between w-full border border-gray-200">
                 Quantum Economic Advantage
-                <span>{{  open ? '-' : '+' }}</span>
+                <span>{{ open ? '-' : '+' }}</span>
             </DisclosureButton>
             <DisclosurePanel class="text-gray-500">
                 <!-- toggle bar -->
@@ -627,69 +630,52 @@ watch(() => props.model, (model) => {
                     <!-- steps / speed toggle -->
                     <div class="flex items-center gap-2">
                         <span class="text-xs text-gray-600">Show steps / speed</span>
-                        <button
-                            type="button"
-                            @click="showStepLines = !showStepLines"
-                            :class="[
-                                'w-10 h-5 rounded-full transition-colors duration-200 flex items-center',
-                                showStepLines ? 'bg-[#002D9D]/80' : 'bg-gray-300'
-                            ]"
-                        >
-                            <span
-                                :class="[
-                                    'w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200',
-                                    showStepLines ? 'translate-x-5' : 'translate-x-1'
-                                ]"
-                            />
+                        <button type="button" @click="showStepLines = !showStepLines" :class="[
+                            'w-10 h-5 rounded-full transition-colors duration-200 flex items-center',
+                            showStepLines ? 'bg-[#002D9D]/80' : 'bg-gray-300'
+                        ]">
+                            <span :class="[
+                                'w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200',
+                                showStepLines ? 'translate-x-5' : 'translate-x-1'
+                            ]" />
                         </button>
                     </div>
                     <!-- cost toggle -->
                     <div class="flex items-center gap-2">
                         <span class="text-xs text-gray-600">Show cost</span>
-                        <button
-                            type="button"
-                            @click="showCostLines = !showCostLines"
-                            :class="[
-                                'w-10 h-5 rounded-full transition-colors duration-200 flex items-center',
-                                showCostLines ? 'bg-[#002D9D]/80' : 'bg-gray-300'
-                            ]"
-                        >
-                            <span
-                                :class="[
-                                    'w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200',
-                                    showCostLines ? 'translate-x-5' : 'translate-x-1'
-                                ]"
-                            />
+                        <button type="button" @click="showCostLines = !showCostLines" :class="[
+                            'w-10 h-5 rounded-full transition-colors duration-200 flex items-center',
+                            showCostLines ? 'bg-[#002D9D]/80' : 'bg-gray-300'
+                        ]">
+                            <span :class="[
+                                'w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200',
+                                showCostLines ? 'translate-x-5' : 'translate-x-1'
+                            ]" />
                         </button>
                     </div>
                 </div>
 
                 <!-- graphs -->
                 <div class="lg:flex gap-4 py-2 min-h-[400px]">
-                    <QuantumAdvantageGraph
-                        :data="currentAdvantageData"
-                        :show-steps="showStepLines"
-                        :show-cost="showCostLines"
-                    />
-                    <QuantumEconomicAdvantageGraph
-                        :data="quantumEconomicAdvantageData"
-                        :show-steps="showStepLines"
-                        :show-cost="showCostLines"
-                    />
+                    <QuantumAdvantageGraph :data="currentAdvantageData" :show-steps="showStepLines"
+                        :show-cost="showCostLines" />
+                    <QuantumEconomicAdvantageGraph :data="quantumEconomicAdvantageData" :show-steps="showStepLines"
+                        :show-cost="showCostLines" />
                 </div>
             </DisclosurePanel>
         </Disclosure>
         <Disclosure as="div" class="px-8 py-2" v-slot="{ open }" defaultOpen>
-            <DisclosureButton class="py-2 bg-gray-100 text-gray-600 hover:bg-gray-200 text-left px-4 rounded-md flex justify-between w-full border border-gray-200">
+            <DisclosureButton
+                class="py-2 bg-gray-100 text-gray-600 hover:bg-gray-200 text-left px-4 rounded-md flex justify-between w-full border border-gray-200">
                 Quantum Timelines
-                <span>{{  open ? '-' : '+' }}</span>
+                <span>{{ open ? '-' : '+' }}</span>
             </DisclosureButton>
             <DisclosurePanel class="text-gray-500">
                 <QuantumCharacteristicsGraph :data="roadmapCharacteristicsData" />
 
-                        </DisclosurePanel>
+            </DisclosurePanel>
         </Disclosure>
-       
+
 
     </div>
 </template>

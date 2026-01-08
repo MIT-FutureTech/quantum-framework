@@ -4,15 +4,15 @@ import { Chart } from 'highcharts-vue'
 import * as utils from "../store/utils"
 
 const props = defineProps({
-  data: Object,
-  showSteps: {
-    type: Boolean,
-    default: true
-  },
-  showCost: {
-    type: Boolean,
-    default: true
-  }
+    data: Object,
+    showSteps: {
+        type: Boolean,
+        default: true
+    },
+    showCost: {
+        type: Boolean,
+        default: true
+    }
 })
 const key = ref(0);
 
@@ -91,13 +91,12 @@ const chartOptions = {
         backgroundColor: 'transparent',
         formatter: function () {
             const problemSize = utils.toBase10HTML(this.points[0].x)
-           
-            
+
+
             return `
             <div class="flex flex-col gap-1 bg-white p-2 rounded-lg shadow-md">
                 <p class="text-gray-700 mb-1 font-bold">Problem Size: <span >${problemSize}</span></p>
-                ${
-                    this.points.map(point => `<div class="flex items-center gap-1">
+                ${this.points.map(point => `<div class="flex items-center gap-1">
                         <span class="w-4 h-[2px]" style="background-color: ${point.series.color};"></span>
                         <span class="flex-1 gap-1 flex justify-between" >${point.series.name}: <span class="min-w-[5ch] text-gray-700 font-bold">${utils.toBase10HTML(point.y)}</span></span>
                         </div>`).join('')
@@ -165,29 +164,29 @@ const chartOptions = {
         }
     },
     series: [
-    // steps / speed lines
-    ...(props.showSteps ? [
-        {
-        name: 'Classical',
-        data: props.data.classicalSteps
-        },
-        {
-        name: 'Quantum',
-        data: props.data.quantumSteps
-        }
-    ] : []),
+        // steps / speed lines
+        ...(props.showSteps ? [
+            {
+                name: 'Classical',
+                data: props.data.classicalSteps
+            },
+            {
+                name: 'Quantum',
+                data: props.data.quantumSteps
+            }
+        ] : []),
 
-    // cost lines
-    ...(props.showCost ? [
-        {
-        name: 'Classical Cost',
-        data: props.data.classicalCostSteps
-        },
-        {
-        name: 'Quantum Cost',
-        data: props.data.quantumCostSteps
-        }
-    ] : [])
+        // cost lines
+        ...(props.showCost ? [
+            {
+                name: 'Classical Cost',
+                data: props.data.classicalCostSteps
+            },
+            {
+                name: 'Quantum Cost',
+                data: props.data.quantumCostSteps
+            }
+        ] : [])
     ],
 }
 
@@ -478,7 +477,7 @@ function updateGraphData() {
                         yAxis: 0
                     },
                     align: (data.nStar >= data.nCostStar &&
-                           (Math.abs(data.nCostStar - data.nStar) / data.maxX) < 0.13)
+                        (Math.abs(data.nCostStar - data.nStar) / data.maxX) < 0.13)
                         ? 'right'
                         : 'left',
                     color: 'black',
@@ -493,7 +492,7 @@ function updateGraphData() {
                         pointerEvents: 'none',
                         color: 'rgba(48,158,244,1)',
                         textAlign: (data.nStar >= data.nCostStar &&
-                                   (Math.abs(data.nCostStar - data.nStar) / data.maxX) < 0.13)
+                            (Math.abs(data.nCostStar - data.nStar) / data.maxX) < 0.13)
                             ? 'right'
                             : 'left',
                     },
@@ -525,7 +524,7 @@ function updateGraphData() {
                     },
                     color: 'black',
                     align: (data.nStar < data.nCostStar &&
-                           (Math.abs(data.nCostStar - data.nStar) / data.maxX) < 0.13)
+                        (Math.abs(data.nCostStar - data.nStar) / data.maxX) < 0.13)
                         ? 'right'
                         : 'left',
                     useHTML: true,
@@ -539,7 +538,7 @@ function updateGraphData() {
                         pointerEvents: 'none',
                         color: 'rgba(0,45,157,1)',
                         textAlign: (data.nStar < data.nCostStar &&
-                                   (Math.abs(data.nCostStar - data.nStar) / data.maxX) < 0.13)
+                            (Math.abs(data.nCostStar - data.nStar) / data.maxX) < 0.13)
                             ? 'right'
                             : 'left',
                     },

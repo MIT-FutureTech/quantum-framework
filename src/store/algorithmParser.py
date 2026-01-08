@@ -1,12 +1,5 @@
-#!/usr/bin/env python3
 """
-Comprehensive Algorithm Variant Parser
-Merges data from three CSV sources:
-1. Parallel Algos CSV - Classical parallel algorithms
-2. Quantum Algorithms CSV - Quantum algorithms  
-3. Sheet1 CSV - Sequential classical algorithms
-
-This gives complete coverage of both sequential and parallel classical algorithms.
+Merges data from multiple CSV sources
 """
 
 import csv
@@ -15,10 +8,11 @@ import re
 from typing import Dict, List, Optional, Tuple
 
 class ComprehensiveAlgorithmParser:
-    def __init__(self, parallel_csv: str, quantum_csv: str, sheet1_csv: str):
+    def __init__(self, parallel_csv: str, quantum_csv: str, sheet1_csv: str, approx_csv: str):
         self.parallel_csv = parallel_csv
         self.quantum_csv = quantum_csv
         self.sheet1_csv = sheet1_csv
+        self.approx_csv = approx_csv
         
     def convert_to_mathjs(self, formula: str) -> Optional[str]:
         """Convert LaTeX/mathematical notation to mathjs format"""
@@ -42,7 +36,7 @@ class ComprehensiveAlgorithmParser:
             return None
         
         # Skip non-standard parameters
-        if any(x in formula for x in ['M^a', 'r(a)', 'T_1', 'TP', 'B \\', 'pi(', 'under assumption']):
+        if any(x in formula for x in ['M^a', 'r(a)', 'T_1', 'TP', 'B \\', 'pi(', 'under assumption', 'p(n)', '2^{(p(n)}']):
             return None
         
         # Convert common patterns
@@ -58,6 +52,8 @@ class ComprehensiveAlgorithmParser:
             (r'exp\s*\(([^)]+)\)', r'e^(\1)'),
             
             # Logarithms
+            (r'\\log_2\s*\{([^}]+)\}', r'log(\1, 2)'),
+            (r'\\log_2\s*\(([^)]+)\)', r'log(\1, 2)'),
             (r'\\log\s*\{([^}]+)\}', r'log(\1, e)'),
             (r'\\log\s*\(([^)]+)\)', r'log(\1, e)'),
             (r'\\ln\s*\{([^}]+)\}', r'log(\1, e)'),
@@ -66,9 +62,12 @@ class ComprehensiveAlgorithmParser:
             (r'ln n', 'log(n, e)'),
             (r'log n', 'log(n, e)'),
             (r'log\(n\)', 'log(n, e)'),
+            (r'\\log V', 'log(V, e)'),
+            (r'log V', 'log(V, e)'),
             
             # Square roots
             (r'\\sqrt\{([^}]+)\}', r'sqrt(\1)'),
+            (r'\\lceil([^\\]+)\\rceil', r'ceil(\1)'),
             
             # Powers  
             (r'\^\{([^}]+)\}', r'^(\1)'),
@@ -85,8 +84,12 @@ class ComprehensiveAlgorithmParser:
         
         formula = formula.strip()
         
+        # Replace V with n (for graph algorithms)
+        formula = re.sub(r'\bV\b', 'n', formula)
+        formula = re.sub(r'\bE\b', 'n^2', formula)
+        
         # Final validation - reject if still has complex notation
-        if any(x in formula for x in ['\\', '_{', 'under', 'assumption', 'o(1)']):
+        if any(x in formula for x in ['\\', '_{', 'under', 'assumption', 'o(1)', 'where']):
             return None
         
         return formula if formula else None
@@ -136,7 +139,6 @@ class ComprehensiveAlgorithmParser:
             
             for row in reader:
                 if len(row) > name_idx and row[name_idx].strip() == problem_name:
-                    # Only include classical (non-quantum) algorithms
                     is_quantum = row[quantum_idx].strip() if len(row) > quantum_idx else '0'
                     if is_quantum not in ['1', 'Y', 'y', 'Yes']:
                         algo_name = row[algo_name_idx].strip() if len(row) > algo_name_idx else ''
@@ -146,10 +148,40 @@ class ComprehensiveAlgorithmParser:
                                 'name': algo_name,
                                 'variant': row[variant_idx].strip() if len(row) > variant_idx else '',
                                 'runtime': runtime,
-                                'work': runtime,  # Sequential: work = runtime
+                                'work': runtime,
                                 'parallel': False,
                                 'source': 'sheet1'
                             })
+        
+        return algorithms
+    
+    def parse_approx_classical(self, problem_name: str) -> List[Dict]:
+        """Parse approximation/heuristic algorithms from Approx_Algos"""
+        algorithms = []
+        
+        with open(self.approx_csv, 'r', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            headers = next(reader)
+            
+            name_idx = 1
+            algo_name_idx = 15
+            variant_idx = 5
+            runtime_idx = 28
+            
+            for row in reader:
+                if len(row) > name_idx and row[name_idx].strip() == problem_name:
+                    algo_name = row[algo_name_idx].strip() if len(row) > algo_name_idx else ''
+                    if algo_name:
+                        runtime = row[runtime_idx].strip() if len(row) > runtime_idx else ''
+                        algorithms.append({
+                            'name': algo_name,
+                            'variant': row[variant_idx].strip() if len(row) > variant_idx else '',
+                            'runtime': runtime,
+                            'work': runtime,
+                            'parallel': False,
+                            'approximation': True,
+                            'source': 'approx_algos'
+                        })
         
         return algorithms
     
@@ -190,10 +222,8 @@ class ComprehensiveAlgorithmParser:
         if runtime_mathjs and not work_mathjs:
             if algo_type == 'classical':
                 if algo.get('parallel', False):
-                    # Parallel: remove /p to get work
                     work_mathjs = re.sub(r'\s*/\s*p', '', runtime_mathjs)
                 else:
-                    # Sequential: work = runtime
                     work_mathjs = runtime_mathjs
             else:  # quantum
                 work_mathjs = f"({runtime_mathjs}) * q"
@@ -205,12 +235,16 @@ class ComprehensiveAlgorithmParser:
         key = f"{name_key}-{index}"
         
         # Estimate metrics
-        metrics = self.estimate_metrics(algo['runtime'])
+        metrics = self.estimate_metrics(algo['runtime'], algo.get('approximation', False))
+        
+        description = algo.get('variant', '')[:150] or 'Algorithm variant'
+        if algo.get('approximation', False):
+            description = f"Approximation/Heuristic: {description}"
         
         variant = {
             'key': key,
             'name': algo['name'][:80],
-            'description': algo.get('variant', '')[:150] or 'Algorithm variant',
+            'description': description,
             'available': available,
             'runtimeFormula': runtime_mathjs,
             'workFormula': work_mathjs,
@@ -219,22 +253,29 @@ class ComprehensiveAlgorithmParser:
             'parallel': algo.get('parallel', False)
         }
         
+        if algo.get('approximation', False):
+            variant['approximation'] = True
+        
         if not available:
             variant['note'] = f"Formula unavailable - original: {algo['runtime'][:50]}"
         
         return variant
     
-    def estimate_metrics(self, runtime: str) -> Dict[str, int]:
+    def estimate_metrics(self, runtime: str, is_approximation: bool = False) -> Dict[str, int]:
         """Estimate performance metrics"""
         metrics = {'speed': 2, 'work': 2, 'span': 2, 'space': 2}
         
         runtime_lower = runtime.lower() if runtime else ''
         
-        if any(x in runtime_lower for x in ['n log n', 'nlog', 'm+n', 'm*n']):
+        # Approximation algorithms are typically faster but less precise
+        if is_approximation:
             metrics['speed'] = 1
-        elif any(x in runtime_lower for x in ['n^2', 'n^3']):
+        
+        if any(x in runtime_lower for x in ['n log n', 'nlog', 'm+n', 'v^2 log v', 'v log v']):
+            metrics['speed'] = 1
+        elif any(x in runtime_lower for x in ['n^2', 'v^2', 'n^3', 'v^3']):
             metrics['speed'] = 2
-        elif any(x in runtime_lower for x in ['2^n', 'e^', 'exp']):
+        elif any(x in runtime_lower for x in ['2^n', 'e^', 'exp', 'v^2 e']):
             metrics['speed'] = 3
         elif 'sqrt(n)' in runtime_lower or 'n/2' in runtime_lower:
             metrics['speed'] = 1
@@ -247,14 +288,17 @@ class ComprehensiveAlgorithmParser:
         """Parse complete problem from all sources"""
         parallel_name = names.get('parallel')
         sheet1_name = names.get('sheet1')
+        approx_name = names.get('approx')
         quantum_name = names.get('quantum')
         
-        # Get all classical algorithms (both parallel and sequential)
+        # Get all classical algorithms
         classical_algos = []
         if parallel_name:
             classical_algos.extend(self.parse_parallel_classical(parallel_name))
         if sheet1_name:
             classical_algos.extend(self.parse_sheet1_classical(sheet1_name))
+        if approx_name:
+            classical_algos.extend(self.parse_approx_classical(approx_name))
         
         # Get quantum algorithms
         quantum_algos = []
@@ -279,25 +323,34 @@ def main():
     parser = ComprehensiveAlgorithmParser(
         'AlgoWiki_algorithms__our_copy__-_Parallel_Algos.csv',
         'AlgoWiki_algorithms__our_copy__-_Quantum_Algorithms.csv',
-        'AlgoWiki_algorithms__our_copy__-_Sheet1.csv'
+        'AlgoWiki_algorithms__our_copy__-_Sheet1.csv',
+        'AlgoWiki_algorithms__our_copy__-_Approx_Algos.csv'
     )
     
     problems = {
         'Integer Factorization': {
             'parallel': 'Integer Factoring',
             'sheet1': 'Integer Factoring',
+            'approx': None,
             'quantum': 'Integer Factoring'
         },
         'Database Search': {
             'parallel': 'String Search',
             'sheet1': 'String Search',
+            'approx': 'String Search',
             'quantum': 'String Search'
+        },
+        'Traveling Salesman': {
+            'parallel': None,
+            'sheet1': None,
+            'approx': 'The Traveling-Salesman Problem',
+            'quantum': 'The Traveling-Salesman Problem'
         }
     }
     
     results = {}
     
-    print("=== Parsing All Sources ===\n")
+    print("=== Parsing All Sources (4 CSVs) ===\n")
     
     for problem_name, names in problems.items():
         result = parser.parse_problem(problem_name, names)
@@ -309,16 +362,25 @@ def main():
             quantum_available = sum(1 for v in result['quantum'] if v['available'])
             print(f"  Available: {classical_available}/{len(result['classical'])} classical, {quantum_available}/{len(result['quantum'])} quantum")
             
-            # Show parallel vs sequential breakdown
+            # Show breakdown
             classical_parallel = sum(1 for v in result['classical'] if v.get('parallel', False))
-            print(f"  Classical breakdown: {classical_parallel} parallel, {len(result['classical']) - classical_parallel} sequential\n")
+            classical_approx = sum(1 for v in result['classical'] if v.get('approximation', False))
+            classical_exact = len(result['classical']) - classical_approx
+            print(f"  Classical breakdown: {classical_parallel} parallel, {classical_exact - classical_parallel} sequential exact, {classical_approx} approximation\n")
     
     # Save to JSON
-    with open('/mnt/user-data/outputs/parsed_algorithms_complete.json', 'w') as f:
+    with open('/mnt/user-data/outputs/parsed_algorithms_4sources.json', 'w') as f:
         json.dump(results, f, indent=2)
     
     print(f"\n✓ Parsed {len(results)} problems")
-    print(f"✓ Saved to /mnt/user-data/outputs/parsed_algorithms_complete.json")
+    print(f"✓ Saved to /mnt/user-data/outputs/parsed_algorithms_4sources.json")
+    
+    # Print summary
+    print("\n=== SUMMARY ===")
+    for problem_name, data in results.items():
+        print(f"\n{problem_name}:")
+        print(f"  Total classical: {len(data['classical'])}")
+        print(f"  Total quantum: {len(data['quantum'])}")
     
     return results
 

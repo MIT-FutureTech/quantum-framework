@@ -1,13 +1,6 @@
 <template>
-    <Dialog
-        title="Runtime Functions & Algorithm Selection"
-        ref="dialog"
-        @save="save"
-        @cancel="cancel"
-        @reset="reset"
-        @openModal="reset"
-        classes="max-w-2xl"
-    >
+    <Dialog title="Runtime Functions & Algorithm Selection" ref="dialog" @save="save" @cancel="cancel" @reset="reset"
+        @openModal="reset" classes="max-w-2xl">
         <template v-slot:button="{ openModal }">
             <slot :openModal="openModal" />
         </template>
@@ -17,25 +10,16 @@
                 <!-- CLASSICAL ALGORITHM SECTION -->
                 <div class="border rounded-lg p-4 bg-gray-50">
                     <h3 class="font-semibold text-md mb-3 text-gray-700">Classical Algorithm</h3>
-                    
+
                     <!-- Classical Algorithm Selector -->
                     <div v-if="availableClassicalAlgorithms.length" class="mb-3">
                         <label class="font-medium text-sm" for="classicalAlgorithmVariant">
                             Select Classical Algorithm
                         </label>
-                        <Multiselect
-                            id="classicalAlgorithmVariant"
-                            class="custom-multiselect mt-1"
-                            track-by="key"
-                            label="name"
-                            v-model="localSelectedClassicalAlgorithm"
-                            :options="availableClassicalAlgorithms"
-                            :searchable="false"
-                            :close-on-select="true"
-                            :allowEmpty="false"
-                            :show-labels="false"
-                            placeholder="Choose classical algorithm"
-                        >
+                        <Multiselect id="classicalAlgorithmVariant" class="custom-multiselect mt-1" track-by="key"
+                            label="name" v-model="localSelectedClassicalAlgorithm"
+                            :options="availableClassicalAlgorithms" :searchable="false" :close-on-select="true"
+                            :allowEmpty="false" :show-labels="false" placeholder="Choose classical algorithm">
                             <template #option="{ option }">
                                 <div>
                                     <div class="font-medium">{{ option.name }}</div>
@@ -53,39 +37,27 @@
 
                     <div>
                         <label class="font-medium text-sm" for="classicalRuntimeInput">Classical Runtime</label>
-                        <input
-                            type="text"
-                            v-model="classicalRuntimeInput"
+                        <input type="text" v-model="classicalRuntimeInput"
                             class="w-full border rounded p-2 font-mono text-sm"
-                            @input="validateInput('classicalRuntimeInput')"
-                        />
+                            @input="validateInput('classicalRuntimeInput')" />
                         <div class="flex items-center justify-center gap-2 bg-white p-2 rounded-lg mt-1">
                             <p v-if="errors.classicalRuntimeInput" class="text-red-500 text-xs">
                                 Invalid expression
                             </p>
-                            <span
-                                v-if="!errors.classicalRuntimeInput"
-                                v-html="renderKaTeX(classicalRuntimeInput)"
-                            ></span>
+                            <span v-if="!errors.classicalRuntimeInput"
+                                v-html="renderKaTeX(classicalRuntimeInput)"></span>
                         </div>
                     </div>
 
                     <div class="mt-3">
                         <label class="font-medium text-sm" for="classicalWork">Classical Work</label>
-                        <input
-                            type="text"
-                            v-model="classicalWork"
-                            class="w-full border rounded p-2 font-mono text-sm"
-                            @input="validateInput('classicalWork')"
-                        />
+                        <input type="text" v-model="classicalWork" class="w-full border rounded p-2 font-mono text-sm"
+                            @input="validateInput('classicalWork')" />
                         <div class="flex items-center justify-center gap-2 bg-white p-2 rounded-lg mt-1">
                             <p v-if="errors.classicalWork" class="text-red-500 text-xs">
                                 Invalid expression
                             </p>
-                            <span
-                                v-if="!errors.classicalWork"
-                                v-html="renderKaTeX(classicalWork)"
-                            ></span>
+                            <span v-if="!errors.classicalWork" v-html="renderKaTeX(classicalWork)"></span>
                         </div>
                     </div>
                 </div>
@@ -93,25 +65,16 @@
                 <!-- QUANTUM ALGORITHM SECTION -->
                 <div class="border rounded-lg p-4 bg-blue-50">
                     <h3 class="font-semibold text-md mb-3 text-gray-700">Quantum Algorithm</h3>
-                    
+
                     <!-- Quantum Algorithm Selector -->
                     <div v-if="availableQuantumAlgorithms.length" class="mb-3">
                         <label class="font-medium text-sm" for="quantumAlgorithmVariant">
                             Select Quantum Algorithm
                         </label>
-                        <Multiselect
-                            id="quantumAlgorithmVariant"
-                            class="custom-multiselect mt-1"
-                            track-by="key"
-                            label="name"
-                            v-model="localSelectedQuantumAlgorithm"
-                            :options="availableQuantumAlgorithms"
-                            :searchable="false"
-                            :close-on-select="true"
-                            :allowEmpty="false"
-                            :show-labels="false"
-                            placeholder="Choose quantum algorithm"
-                        >
+                        <Multiselect id="quantumAlgorithmVariant" class="custom-multiselect mt-1" track-by="key"
+                            label="name" v-model="localSelectedQuantumAlgorithm" :options="availableQuantumAlgorithms"
+                            :searchable="false" :close-on-select="true" :allowEmpty="false" :show-labels="false"
+                            placeholder="Choose quantum algorithm">
                             <template #option="{ option }">
                                 <div>
                                     <div class="font-medium">{{ option.name }}</div>
@@ -129,39 +92,26 @@
 
                     <div>
                         <label class="font-medium text-sm" for="quantumRuntimeInput">Quantum Runtime</label>
-                        <input
-                            type="text"
-                            v-model="quantumRuntimeInput"
+                        <input type="text" v-model="quantumRuntimeInput"
                             class="w-full border rounded p-2 font-mono text-sm"
-                            @input="validateInput('quantumRuntimeInput')"
-                        />
+                            @input="validateInput('quantumRuntimeInput')" />
                         <div class="flex items-center justify-center gap-2 bg-white p-2 rounded-lg mt-1">
                             <p v-if="errors.quantumRuntimeInput" class="text-red-500 text-xs">
                                 Invalid expression
                             </p>
-                            <span
-                                v-if="!errors.quantumRuntimeInput"
-                                v-html="renderKaTeX(quantumRuntimeInput)"
-                            ></span>
+                            <span v-if="!errors.quantumRuntimeInput" v-html="renderKaTeX(quantumRuntimeInput)"></span>
                         </div>
                     </div>
 
                     <div class="mt-3">
                         <label class="font-medium text-sm" for="quantumWork">Quantum Work</label>
-                        <input
-                            type="text"
-                            v-model="quantumWork"
-                            class="w-full border rounded p-2 font-mono text-sm"
-                            @input="validateInput('quantumWork')"
-                        />
+                        <input type="text" v-model="quantumWork" class="w-full border rounded p-2 font-mono text-sm"
+                            @input="validateInput('quantumWork')" />
                         <div class="flex items-center justify-center gap-2 bg-white p-2 rounded-lg mt-1">
                             <p v-if="errors.quantumWork" class="text-red-500 text-xs">
                                 Invalid expression
                             </p>
-                            <span
-                                v-if="!errors.quantumWork"
-                                v-html="renderKaTeX(quantumWork)"
-                            ></span>
+                            <span v-if="!errors.quantumWork" v-html="renderKaTeX(quantumWork)"></span>
                         </div>
                     </div>
                 </div>
@@ -169,51 +119,29 @@
                 <!-- SHARED SETTINGS -->
                 <div class="border rounded-lg p-4 bg-gray-50">
                     <h3 class="font-semibold text-md mb-3 text-gray-700">Shared Settings</h3>
-                    
+
                     <div>
                         <label class="font-medium text-sm" for="penaltyInput">Connectivity Penalty</label>
-                        <input
-                            type="text"
-                            v-model="penaltyInput"
-                            class="w-full border rounded p-2 font-mono text-sm"
-                            @input="validateInput('penaltyInput')"
-                        />
+                        <input type="text" v-model="penaltyInput" class="w-full border rounded p-2 font-mono text-sm"
+                            @input="validateInput('penaltyInput')" />
                         <div class="flex items-center justify-center gap-2 bg-white p-2 rounded-lg mt-1">
                             <p v-if="errors.penaltyInput" class="text-red-500 text-xs">
                                 Invalid expression
                             </p>
-                            <span
-                                v-if="!errors.penaltyInput"
-                                v-html="renderKaTeX(penaltyInput)"
-                            ></span>
+                            <span v-if="!errors.penaltyInput" v-html="renderKaTeX(penaltyInput)"></span>
                         </div>
                     </div>
 
                     <div class="mt-3">
                         <label class="font-medium text-sm" for="processors">Processors</label>
                         <div class="flex items-center justify-between w-full gap-2 mt-2">
-                            <input
-                                class="flex-1 accent-[#002D9D]"
-                                type="range"
-                                id="processors"
-                                min="0"
-                                max="20"
-                                step="1"
-                                v-model="processors"
-                            />
+                            <input class="flex-1 accent-[#002D9D]" type="range" id="processors" min="0" max="20"
+                                step="1" v-model="processors" />
                             <div
-                                class="bg-white p-2 rounded-lg text-center w-1/5 flex items-center justify-center relative"
-                            >
+                                class="bg-white p-2 rounded-lg text-center w-1/5 flex items-center justify-center relative">
                                 <span class="pr-2">10 </span>
-                                <input
-                                    class="w-[6ch] bg-transparent absolute t-0 l-0 ml-14 mb-4 text-xs"
-                                    type="number"
-                                    min="0"
-                                    max="20"
-                                    step="1"
-                                    id="processors"
-                                    v-model="processors"
-                                />
+                                <input class="w-[6ch] bg-transparent absolute t-0 l-0 ml-14 mb-4 text-xs" type="number"
+                                    min="0" max="20" step="1" id="processors" v-model="processors" />
                             </div>
                         </div>
                     </div>
