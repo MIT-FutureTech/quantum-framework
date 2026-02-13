@@ -7,7 +7,7 @@
 
         <template #content>
             <div class="flex flex-col gap-4">
-                <!-- CLASSICAL ALGORITHM SECTION -->
+                <!-- Classical Algorithm Section -->
                 <div class="border rounded-lg p-4 bg-gray-50">
                     <h3 class="font-semibold text-md mb-3 text-gray-700">Classical Algorithm</h3>
 
@@ -62,7 +62,7 @@
                     </div>
                 </div>
 
-                <!-- QUANTUM ALGORITHM SECTION -->
+                <!-- Quantum Algorithm Section -->
                 <div class="border rounded-lg p-4 bg-blue-50">
                     <h3 class="font-semibold text-md mb-3 text-gray-700">Quantum Algorithm</h3>
 
@@ -116,7 +116,7 @@
                     </div>
                 </div>
 
-                <!-- SHARED SETTINGS -->
+                <!-- Shared Settings -->
                 <div class="border rounded-lg p-4 bg-gray-50">
                     <h3 class="font-semibold text-md mb-3 text-gray-700">Shared Settings</h3>
 
@@ -197,7 +197,7 @@ const props = defineProps({
     classicalWork: String,
     quantumWork: String,
     processors: Number,
-    // NEW: separate classical and quantum algorithm lists
+    // separate classical and quantum algorithm lists
     availableClassicalAlgorithms: {
         type: Array,
         default: () => [],

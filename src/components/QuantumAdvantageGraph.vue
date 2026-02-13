@@ -241,7 +241,7 @@ function updateGraphData() {
         });
     }
 
-    // --- vertical guide lines depend on toggles ---
+    // vertical guide lines depend on toggles
     chartOptions.xAxis.plotLines = [];
     if (props.showSteps && Number.isFinite(data.nStar)) {
         chartOptions.xAxis.plotLines.push({
@@ -258,7 +258,7 @@ function updateGraphData() {
         });
     }
 
-    // --- series depend on toggles ---
+    // series depend on toggles
     const series = [];
 
     // steps / speed lines + speed star
@@ -437,7 +437,7 @@ function updateGraphData() {
 
     chartOptions.series = series;
 
-    // --- keep empty graph visible when both toggles are off ---
+    // keep empty graph visible when both toggles are off
     if (!props.showSteps && !props.showCost) {
         // Highcharts hides the graph if there are no series,
         // so we add a fully invisible dummy series.
@@ -453,7 +453,7 @@ function updateGraphData() {
     }
 
 
-    // --- annotations: only show labels for active toggles ---
+    // annotations: only show labels for active toggles
     const annotations = [];
 
     if (props.showCost) {

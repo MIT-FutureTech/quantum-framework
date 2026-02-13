@@ -7,9 +7,6 @@
  * Usage:
  *   node src/store/syncAlgorithms.js
  *
- * Required .env:
- *   GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/service-account.json
- *   SPREADSHEET_ID=your_sheet_id
  */
 
 import "dotenv/config";
@@ -17,7 +14,7 @@ import fs from "fs";
 import path from "path";
 import { google } from "googleapis";
 
-// CONFIGURATION
+// Configuration
 
 
 const CONFIG = {
@@ -94,7 +91,7 @@ async function getGoogleSheetsClient() {
   return { sheets, spreadsheetId };
 }
 
-// DATA FETCHING
+// Data Fetching
 
 async function fetchSheetData(sheets, spreadsheetId, sheetName) {
   try {
@@ -115,7 +112,7 @@ async function fetchSheetData(sheets, spreadsheetId, sheetName) {
   }
 }
 
-// FORMULA CONVERSION (LaTeX to mathjs)
+// Formula Conversion (LaTeX to mathjs)
 
 function convertToMathjs(formula) {
   if (!formula || formula.trim() === "" || formula === "-" || formula === "?") {
@@ -215,7 +212,7 @@ function convertToMathjs(formula) {
   return result || null;
 }
 
-// PARSING ALGORITHMS FROM SHEETS
+// Parsing algorithms from each sheet
 
 function parseParallelAlgos(rows, problemName) {
   const algorithms = [];
@@ -341,7 +338,7 @@ function parseQuantumAlgos(rows, problemName) {
   return algorithms;
 }
 
-// REMOVE DUPLICATES
+// Remove duplicates
 
 function removeDuplicates(algorithms) {
   const seen = new Map();
@@ -353,14 +350,14 @@ function removeDuplicates(algorithms) {
       seen.set(key, true);
       unique.push(algo);
     } else {
-      console.log(`   Skipping duplicate: ${algo.name}`);
+      console.log(`Skipping duplicate: ${algo.name}`);
     }
   }
 
   return unique;
 }
 
-// CREATE ALGORITHM VARIANT OBJECT
+// Create algorithm variant object
 
 function createVariant(algo, index, algoType) {
   const runtimeMathjs = convertToMathjs(algo.runtime);
@@ -446,10 +443,10 @@ function estimateMetrics(runtime, isApproximation = false) {
   return metrics;
 }
 
-// PARSE COMPLETE PROBLEM
+// Parse complete problem
 
 async function parseProblem(problemName, names, sheetsData) {
-  console.log(`\n📊 Processing: ${problemName}`);
+  console.log(`\nProcessing: ${problemName}`);
 
   const classicalAlgos = [];
   const quantumAlgos = [];
@@ -457,32 +454,32 @@ async function parseProblem(problemName, names, sheetsData) {
   if (names.parallel && sheetsData.parallel) {
     const algos = parseParallelAlgos(sheetsData.parallel, names.parallel);
     classicalAlgos.push(...algos);
-    console.log(`   ✓ Found ${algos.length} parallel algorithms`);
+    console.log(`Found ${algos.length} parallel algorithms`);
   }
 
   if (names.sheet1 && sheetsData.sheet1) {
     const algos = parseSheet1Algos(sheetsData.sheet1, names.sheet1);
     classicalAlgos.push(...algos);
-    console.log(`   ✓ Found ${algos.length} sequential algorithms`);
+    console.log(`Found ${algos.length} sequential algorithms`);
   }
 
   if (names.approx && sheetsData.approx) {
     const algos = parseApproxAlgos(sheetsData.approx, names.approx);
     classicalAlgos.push(...algos);
-    console.log(`   ✓ Found ${algos.length} approximation algorithms`);
+    console.log(`Found ${algos.length} approximation algorithms`);
   }
 
   if (names.quantum && sheetsData.quantum) {
     const algos = parseQuantumAlgos(sheetsData.quantum, names.quantum);
     quantumAlgos.push(...algos);
-    console.log(`   ✓ Found ${algos.length} quantum algorithms`);
+    console.log(`Found ${algos.length} quantum algorithms`);
   }
 
   const uniqueClassical = removeDuplicates(classicalAlgos);
   const uniqueQuantum = removeDuplicates(quantumAlgos);
 
   if (uniqueClassical.length === 0 || uniqueQuantum.length === 0) {
-    console.log(`   ⚠️  Skipping ${problemName}: needs both classical and quantum`);
+    console.log(`Skipping ${problemName}: needs both classical and quantum`);
     return null;
   }
 
@@ -498,7 +495,7 @@ async function parseProblem(problemName, names, sheetsData) {
   const quantumAvailable = quantumVariants.filter((v) => v.available).length;
 
   console.log(
-    `   Result: ${classicalAvailable}/${classicalVariants.length} classical, ${quantumAvailable}/${quantumVariants.length} quantum available`
+    `Result: ${classicalAvailable}/${classicalVariants.length} classical, ${quantumAvailable}/${quantumVariants.length} quantum available`
   );
 
   return {

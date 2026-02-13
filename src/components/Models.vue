@@ -84,7 +84,7 @@ function getQuantumAdvantage(logClassicalFunction, logQuantumFunction, logPenalt
 // by using the inverse of the mapping. Supports BOTH legacy "{q}" strings
 // and the new "q" strings.
 function convertQubits(model, expression) {
-    const kind = utils.classifyQubitMapping(model.qubitToProblemSize); // 'exp' | 'doubleexp' | 'linear' | 'log' | 'custom'
+    const kind = utils.classifyQubitMapping(model.qubitToProblemSize); // 'exp', 'doubleexp', 'linear', 'log', 'custom'
     let replacement = "";
 
     if (kind === 'exp') {   // n = 2^q   ->  q = log2(n)
