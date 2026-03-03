@@ -71,7 +71,7 @@
                 </div>
                 <div v-else>
                     <div class="flex items-center justify-between w-full gap-2">
-                        <input class="flex-1 accent-[#a32035]" type="range" id="speed" v-model="speed" min="1"
+                        <input class="flex-1 accent-gray-800" type="range" id="speed" v-model="speed" min="1"
                             max="1000000" />
                         <input class="bg-gray-100 p-2 rounded-lg text-center w-1/5" type="number" id="speed"
                             v-model="speed" />
@@ -87,7 +87,7 @@
                     needs to take to maintain
                     its error correction.</p>
                 <div class="flex items-center justify-between w-full gap-2">
-                    <input class="flex-1 accent-[#a32035]" type="range" id="gateOverhead" v-model="gateOverhead" min="1"
+                    <input class="flex-1 accent-gray-800" type="range" id="gateOverhead" v-model="gateOverhead" min="1"
                         max="1000" />
                     <input class="bg-gray-100 p-2 rounded-lg text-center w-1/5" type="number" id="gateOverhead"
                         v-model="gateOverhead" />
@@ -102,7 +102,7 @@
                     from the quantum algorithm's.
                 </p>
                 <div class="flex items-center justify-between w-full gap-2">
-                    <input class="flex-1 accent-[#a32035]" type="range" id="algorithmConstant"
+                    <input class="flex-1 accent-gray-800" type="range" id="algorithmConstant"
                         v-model="algorithmConstant" min="0.1" max="2" step="0.1" />
                     <input class="bg-gray-100 p-2 rounded-lg text-center w-1/5" type="number" id="algorithmConstant"
                         v-model="algorithmConstant" />

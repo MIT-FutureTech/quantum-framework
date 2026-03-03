@@ -614,14 +614,14 @@ const editRoadmapRef = ref(null);
             <div class="flex flex-wrap  items-center gap-4">
                 <!-- toogle quantum only -->
                 <label class="flex items-center gap-1 cursor-pointer">
-                    <Switch v-model="editMode" :class="!editMode ? 'bg-[#a32035]' : 'bg-gray-400'"
+                    <Switch v-model="editMode" :class="!editMode ? 'bg-gray-800' : 'bg-gray-400'"
                         class="relative inline-flex h-4 w-8 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-white/75">
                         <span class="sr-only">Advanced Options</span>
                         <span aria-hidden="true" :class="!editMode ? 'translate-x-4' : 'translate-x-0'"
                             class="pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out" />
 
                     </Switch>
-                    <span class="text-sm" :class="!editMode ? 'text-[#a32035]' : 'text-gray-400'">
+                    <span class="text-sm" :class="!editMode ? 'text-gray-800' : 'text-gray-400'">
                         Advanced Options
                     </span>
 
@@ -716,7 +716,7 @@ const editRoadmapRef = ref(null);
                             @updateAlgorithmChange="onAlgorithmChange" v-slot="{ openModal }">
                             <button class="rounded-md bg-gray-500 text-xs p-0.5 px-2 text-white hover:bg-gray-600"
                                 @click="openModal">
-                                Advanced options
+                                Algorithm Options
                             </button>
                         </ProblemRuntimeAdvanced>
                     </div>
@@ -883,7 +883,7 @@ const editRoadmapRef = ref(null);
                         time it takes a quantum computer to perform one.
                     </p>
                     <div class="flex items-center justify-between w-full gap-2 mt-2 mb-4">
-                        <input class="flex-1 accent-[#a32035]" type="range" id="hardwareSlowdown" min="0" max="16"
+                        <input class="flex-1 accent-gray-800" type="range" id="hardwareSlowdown" min="0" max="16"
                             step="0.5" v-model="model.hardwareSlowdown" />
                         <div
                             class="bg-gray-100 p-2 rounded-lg text-center w-1/5 flex items-center justify-center relative">
@@ -910,7 +910,7 @@ const editRoadmapRef = ref(null);
                         classical operation.
                     </p>
                     <div class="flex items-center justify-between w-full gap-2 mt-2 mb-4">
-                        <input class="flex-1 accent-[#a32035]" type="range" id="costFactor" min="0" max="16" step="0.5"
+                        <input class="flex-1 accent-gray-800" type="range" id="costFactor" min="0" max="16" step="0.5"
                             v-model="model.costFactor" />
                         <div
                             class="bg-gray-100 p-2 rounded-lg text-center w-1/5 flex items-center justify-center relative">
@@ -943,7 +943,7 @@ const editRoadmapRef = ref(null);
                             Physical-Logical Qubit Ratio is unused when roadmap is defined
                             in terms of logical qubits.
                         </div>
-                        <input class="flex-1 accent-[#a32035]" type="range" id="physical_logical_ratio"
+                        <input class="flex-1 accent-gray-800" type="range" id="physical_logical_ratio"
                             v-model="model.physicalLogicalQubitsRatio" min="3" max="2000" :disabled="lockPLQR" />
                         <input class="bg-gray-100 p-2 rounded-lg text-center w-1/5" type="number"
                             id="physical_logical_ratio" v-model="model.physicalLogicalQubitsRatio"

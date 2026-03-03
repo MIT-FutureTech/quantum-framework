@@ -223,10 +223,10 @@ function calculateCurrentAdvantage(model) {
 
     currentAdvantageDataAux = {
         ...currentAdvantageDataAux,
-        quantumSteps: range.map((i) => [i, cqf(i) + cpf(i) + hardwareSlowdown]).map(([x, y]) => [x, y === NaN ? 99999 : y]),
-        classicalSteps: range.map((i) => [i, ccf(i, { n: i, p: Math.pow(10, processors) })]).map(([x, y]) => [x, isNaN(y) ? -1 : y]),
-        quantumCostSteps: range.map((i) => [i, cqfc(i) + cpf(i) + costFactor]).map(([x, y]) => [x, y === NaN ? 99999 : y]),
-        classicalCostSteps: range.map((i) => [i, ccfc(i)]).map(([x, y]) => [x, isNaN(y) ? -1 : y])
+        quantumSteps: range.map((i) => [i, cqf(i) + cpf(i) + hardwareSlowdown]).map(([x, y]) => [x, isNaN(y) || !Number.isFinite(y) ? 99999 : y]),
+        classicalSteps: range.map((i) => [i, ccf(i, { n: i, p: Math.pow(10, processors) })]).map(([x, y]) => [x, isNaN(y) || !Number.isFinite(y) ? -1 : y]),
+        quantumCostSteps: range.map((i) => [i, cqfc(i) + cpf(i) + costFactor]).map(([x, y]) => [x, isNaN(y) || !Number.isFinite(y) ? 99999 : y]),
+        classicalCostSteps: range.map((i) => [i, ccfc(i)]).map(([x, y]) => [x, isNaN(y) || !Number.isFinite(y) ? -1 : y])
     }
 
 
@@ -304,8 +304,15 @@ function calculateQuantumEconomicAdvantage(model) {
     let quantumEconomicAdvantageDataAux = {}
 
     // Use capped feasibility for tStar/tCostStar so the QEA point reflects the time constraint
-    const tStar = utils.bisectionMethod(year => cappedFeasible(year) - quantumAdvantage(year), currentYear, 3000, "tStar in QEA");
-    const tCostStar = utils.bisectionMethod(year => cappedFeasible(year) - quantumCostAdvantage(year), currentYear, 3000, "tCostStar in QEA");
+    // Wrap inner functions to return finite values to prevent NaN/Infinity from breaking bisection
+    const tStar = utils.bisectionMethod(year => {
+        const val = cappedFeasible(year) - quantumAdvantage(year);
+        return Number.isFinite(val) ? val : -1;
+    }, currentYear, 3000, "tStar in QEA");
+    const tCostStar = utils.bisectionMethod(year => {
+        const val = cappedFeasible(year) - quantumCostAdvantage(year);
+        return Number.isFinite(val) ? val : -1;
+    }, currentYear, 3000, "tCostStar in QEA");
 
     console.log("printing stuff");
     console.log(cappedFeasible(currentYear), quantumAdvantage(currentYear));
@@ -393,13 +400,14 @@ function calculateQuantumEconomicAdvantage(model) {
         range.push(i);
     }
 
-    let quantumFeasibleList = range.map(i => [currentYear + i, quantumFeasible(currentYear + i)])
-    let quantumAdvantageList = range.map(i => [currentYear + i, quantumAdvantage(currentYear + i)])
-    let quantumCostAdvantageList = range.map(i => [currentYear + i, quantumCostAdvantage(currentYear + i)])
+    const isFinitePoint = ([x, y]) => Number.isFinite(x) && Number.isFinite(y);
+    let quantumFeasibleList = range.map(i => [currentYear + i, quantumFeasible(currentYear + i)]).filter(isFinitePoint);
+    let quantumAdvantageList = range.map(i => [currentYear + i, quantumAdvantage(currentYear + i)]).filter(isFinitePoint);
+    let quantumCostAdvantageList = range.map(i => [currentYear + i, quantumCostAdvantage(currentYear + i)]).filter(isFinitePoint);
 
     // Build capped feasibility list when time cap is enabled
     let quantumFeasibleCappedList = hasTimeCap
-        ? range.map(i => [currentYear + i, cappedFeasible(currentYear + i)])
+        ? range.map(i => [currentYear + i, cappedFeasible(currentYear + i)]).filter(isFinitePoint)
         : null;
 
     quantumEconomicAdvantageDataAux = {
@@ -555,6 +563,10 @@ function getLogicalQubits(year, roadmap, physicalLogicalQubitsRatio, ratioImprov
     //logLogicalQubits has the log_10 of the number of logical qubits
     let logLogicalQubits = logOfPhysicalQubits - adjustedPLQR
 
+    // Clamp: fewer than 1 logical qubit means nothing useful can be computed
+    if (!Number.isFinite(logLogicalQubits)) logLogicalQubits = 0;
+    logLogicalQubits = Math.max(logLogicalQubits, 0);
+
     return logLogicalQubits
 }
 
@@ -582,16 +594,18 @@ function getQuantumFeasible(
 
     if (kind === 'exp') {
         // n = 2^q  (return log10(n))
-        // log10(n) = q * log10(2) = (10^logLogicalQubits) * log10(2)  [this would explode]
-        // Careful: logLogicalQubits = log10(q). We want log10(n) = (2^q) in base10 -> too big.
-        // Use exact same behavior as your previous implementation:
+        if (logLogicalQubits <= 0) return 0;
         let problemSize = (logLogicalQubits + Math.log10(Math.log10(2)))
-        return 10 ** problemSize
+        let result = 10 ** problemSize;
+        if (!Number.isFinite(result) || isNaN(result)) return 0;
+        return result;
     }
 
     if (kind === 'doubleexp') {
         // n = 2^(2^q)
+        if (logLogicalQubits <= 0) return 0;
         let problemSize = Math.pow(2, Math.pow(10, logLogicalQubits)) * Math.log10(2)
+        if (!Number.isFinite(problemSize) || isNaN(problemSize)) return 0;
         return problemSize
     }
 
@@ -602,9 +616,10 @@ function getQuantumFeasible(
 
     if (kind === 'log') {
         // n = log2(q)
+        if (logLogicalQubits <= 0) return 0;
         let problemSize = Math.log10(logLogicalQubits) - Math.log10(Math.log10(2))
-        if (isNaN(problemSize)) return 0
-        return problemSize
+        if (!Number.isFinite(problemSize) || isNaN(problemSize)) return 0;
+        return Math.max(problemSize, 0);
     }
 
     // Custom expression n(q): evaluate numerically with the number of logical qubits
@@ -664,7 +679,7 @@ watch(() => props.model, (model) => {
                         <span class="text-xs text-gray-600">Show steps / speed</span>
                         <button type="button" @click="showStepLines = !showStepLines" :class="[
                             'w-10 h-5 rounded-full transition-colors duration-200 flex items-center',
-                            showStepLines ? 'bg-[#a32035]/80' : 'bg-gray-300'
+                            showStepLines ? 'bg-gray-800' : 'bg-gray-300'
                         ]">
                             <span :class="[
                                 'w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200',
@@ -677,7 +692,7 @@ watch(() => props.model, (model) => {
                         <span class="text-xs text-gray-600">Show cost</span>
                         <button type="button" @click="showCostLines = !showCostLines" :class="[
                             'w-10 h-5 rounded-full transition-colors duration-200 flex items-center',
-                            showCostLines ? 'bg-[#a32035]/80' : 'bg-gray-300'
+                            showCostLines ? 'bg-gray-800' : 'bg-gray-300'
                         ]">
                             <span :class="[
                                 'w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200',

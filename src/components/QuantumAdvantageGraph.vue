@@ -73,6 +73,7 @@ let data = processDataToGraph(props.data)
 const chartOptions = {
     chart: {
         marginRight: 70,
+        marginBottom: 80,
     },
     credits: {
         enabled: false
@@ -89,6 +90,15 @@ const chartOptions = {
         crosshairs: true,
         shadow: false,
         backgroundColor: 'transparent',
+        positioner: function (labelWidth, labelHeight, point) {
+            const chart = this.chart;
+            const x = Math.max(chart.plotLeft, Math.min(
+                point.plotX + chart.plotLeft - labelWidth / 2,
+                chart.plotLeft + chart.plotWidth - labelWidth
+            ));
+            const y = chart.plotTop + chart.plotHeight + 10;
+            return { x, y };
+        },
         formatter: function () {
             const problemSize = utils.toBase10HTML(this.points[0].x)
 
@@ -192,17 +202,17 @@ const chartOptions = {
 
 watch(() => props.data, async () => {
     data = processDataToGraph(props.data)
-    updateGraphData();
+    try { updateGraphData() } catch (err) { console.warn('Advantage graph update error:', err) }
     key.value += 1;
 }, { immediate: true, deep: true })
 watch(() => [props.showSteps, props.showCost], () => {
-    updateGraphData();
+    try { updateGraphData() } catch (err) { console.warn('Advantage graph toggle update error:', err) }
     key.value += 1;
 });
 
 
 function updateGraphData() {
-    if (!data) return;
+    if (!data || !data.classicalSteps || !data.classicalSteps.length) return;
 
     chartOptions.title.text = data.graphTitle;
     chartOptions.plotOptions.series.label.connectorAllowed = false;
@@ -216,7 +226,7 @@ function updateGraphData() {
     if (props.showSteps && Number.isFinite(data.nStar)) {
         chartOptions.xAxis.plotBands.push({
             from: data.nStar,
-            to: data.nStar > data.nCostStar ? data.maxX : data.nCostStar,
+            to: (!props.showCost || data.nStar > data.nCostStar) ? data.maxX : data.nCostStar,
             color: {
                 linearGradient: { x1: 0, x2: 0, y1: 0, y2: 1 },
                 stops: [
@@ -230,7 +240,7 @@ function updateGraphData() {
     if (props.showCost && Number.isFinite(data.nCostStar)) {
         chartOptions.xAxis.plotBands.push({
             from: data.nCostStar,
-            to: data.nStar <= data.nCostStar ? data.maxX : data.nStar,
+            to: (!props.showSteps || data.nStar <= data.nCostStar) ? data.maxX : data.nStar,
             color: {
                 linearGradient: { x1: 0, x2: 0, y1: 0, y2: 1 },
                 stops: [

@@ -58,6 +58,7 @@ const chartOptions = {
         },
 
         marginRight: 180,
+        marginBottom: 80,
     },
     credits: {
         enabled: false
@@ -75,6 +76,15 @@ const chartOptions = {
         crosshairs: true,
         shadow: false,
         backgroundColor: 'transparent',
+        positioner: function (labelWidth, labelHeight, point) {
+            const chart = this.chart;
+            const x = Math.max(chart.plotLeft, Math.min(
+                point.plotX + chart.plotLeft - labelWidth / 2,
+                chart.plotLeft + chart.plotWidth - labelWidth
+            ));
+            const y = chart.plotTop + chart.plotHeight + 10;
+            return { x, y };
+        },
         formatter: function () {
 
             const year = utils.round(this.points[0].x, data.maxX - currentYear <= 5 ? 1 : 0)
@@ -328,7 +338,7 @@ function updateGraph() {
                     verticalAlign: 'middle',
                     overflow: false,
                     crop: false,
-                    color: 'teal',
+                    color: '#E57373',
                     shadow: false,
                     style: {
                         fontSize: '12px',
@@ -346,7 +356,7 @@ function updateGraph() {
                 y: data.physicalQubits[data.physicalQubits.length - 1][1],
 
             })],
-            color: 'teal',
+            color: '#E57373',
             dashStyle: 'solid',
             zoneAxis: 'x',
             zones: [{
@@ -405,7 +415,7 @@ function updateGraph() {
         {
             name: 'Roadmap',
             data: data.roadmap,
-            color: 'teal',
+            color: '#E57373',
             type: 'scatter',
             maxPointWidth: 2,
             dataLabels: {

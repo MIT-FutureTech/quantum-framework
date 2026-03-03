@@ -25,7 +25,7 @@ const props = defineProps({
 
 function processDataToGraph(data) {
     // Safe defaults so the component can mount when no model is loaded yet
-    if (!data || !Array.isArray(data.quantumAdvantage)) {
+    if (!data || !Array.isArray(data.quantumAdvantage) || data.quantumAdvantage.length === 0) {
         const fallbackMaxX = new Date().getFullYear() + 5;
         return {
             graphTitle: 'Quantum Economic Advantage',
@@ -140,6 +140,7 @@ const key = ref(0);
 const chartOptions = {
     chart: {
         marginRight: 80,
+        marginBottom: 80,
     },
     credits: {
         enabled: false
@@ -157,6 +158,15 @@ const chartOptions = {
         crosshairs: true,
         shadow: false,
         backgroundColor: 'transparent',
+        positioner: function (labelWidth, labelHeight, point) {
+            const chart = this.chart;
+            const x = Math.max(chart.plotLeft, Math.min(
+                point.plotX + chart.plotLeft - labelWidth / 2,
+                chart.plotLeft + chart.plotWidth - labelWidth
+            ));
+            const y = chart.plotTop + chart.plotHeight + 10;
+            return { x, y };
+        },
         formatter: function () {
             const year = utils.round(this.points[0].x, data.maxX - currentYear <= 5 ? 1 : 0)
             return `
@@ -231,13 +241,13 @@ const chartOptions = {
 
 watch(() => props.data, async () => {
     data = processDataToGraph(props.data)
-    updateGraph()
+    try { updateGraph() } catch (err) { console.warn('QEA graph update error:', err) }
     key.value += 1;
 }, { immediate: true, deep: true })
 
 // also watch the toggles so hiding a line updates immediately
 watch(() => [props.showSteps, props.showCost], () => {
-    updateGraph()
+    try { updateGraph() } catch (err) { console.warn('QEA graph toggle update error:', err) }
     key.value += 1;
 })
 
@@ -273,7 +283,46 @@ function updateGraph() {
         }
     }
 
-    // ******** NEW: build the series with the two guards ********
+    // ******** Recompute area ceilings based on toggle state ********
+    // When one toggle is off, the other area should fill to maxY (bounded by feasibility)
+    // instead of stopping at the invisible line.
+    const feasibleForAreas = data.hasTimeCap && data.quantumFeasibleCapped
+        ? data.quantumFeasibleCapped : (props.data.quantumFeasible || []);
+    const quantumFeasibleAux = Object.fromEntries(feasibleForAreas.map(step => [step[0], step[1]]));
+    const quantumCostAdvantageAux = Object.fromEntries((props.data.quantumCostAdvantage || []).map(step => [step[0], step[1]]));
+    const quantumAdvantageAux = Object.fromEntries((props.data.quantumAdvantage || []).map(step => [step[0], step[1]]));
+
+    let adjustedAdvantageArea = data.quantumAdvantageArea;
+    let adjustedCostAdvantageArea = data.quantumCostAdvantageArea;
+
+    if (props.showSteps) {
+        const raw = (props.data.quantumAdvantage || []).filter(step => step[0] >= data.tStar);
+        if (!props.showCost) {
+            // Cost is hidden: speed area fills to min(maxY, feasibility)
+            adjustedAdvantageArea = raw.map(step => [step[0], step[1],
+                Math.min(data.maxY, quantumFeasibleAux[step[0]] ?? data.maxY)]);
+        } else {
+            // Both visible: use original logic (bounded by cost line or maxY)
+            adjustedAdvantageArea = raw.map(step => [step[0], step[1],
+                Math.min(data.nStar >= data.nCostStar ? data.maxY : (quantumCostAdvantageAux[step[0]] ?? data.maxY),
+                    quantumFeasibleAux[step[0]] ?? data.maxY)]);
+        }
+    }
+
+    if (props.showCost) {
+        const raw = (props.data.quantumCostAdvantage || []).filter(step => step[0] >= data.tCostStar);
+        if (!props.showSteps) {
+            // Steps is hidden: cost area fills to min(maxY, feasibility)
+            adjustedCostAdvantageArea = raw.map(step => [step[0], step[1],
+                Math.min(data.maxY, quantumFeasibleAux[step[0]] ?? data.maxY)]);
+        } else {
+            // Both visible: use original logic (bounded by speed line or maxY)
+            adjustedCostAdvantageArea = raw.map(step => [step[0], step[1],
+                Math.min(data.nCostStar > data.nStar ? data.maxY : (quantumAdvantageAux[step[0]] ?? data.maxY),
+                    quantumFeasibleAux[step[0]] ?? data.maxY)]);
+        }
+    }
+
     const series = []
 
     // shaded speed area
@@ -281,7 +330,7 @@ function updateGraph() {
         series.push({
             name: 'Quantum Speed Advantage',
             type: 'areasplinerange',
-            data: data.quantumAdvantageArea,
+            data: adjustedAdvantageArea,
             showInLegend: false,
             enableMouseTracking: false,
             color: {
@@ -308,7 +357,7 @@ function updateGraph() {
         series.push({
             name: 'Quantum Cost Advantage',
             type: 'areasplinerange',
-            data: data.quantumCostAdvantageArea,
+            data: adjustedCostAdvantageArea,
             showInLegend: false,
             enableMouseTracking: false,
             color: {
