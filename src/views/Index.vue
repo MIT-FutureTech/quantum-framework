@@ -51,7 +51,7 @@ onMounted(() => {
     <div class="flex flex-col h-screen w-full">
         <div class="sticky top-0 z-[99999] bg-white shadow-[0_2px_5px_0_rgba(0,0,0,0.2)]" style="height: 60px;">
             <div class="max-w-7xl mx-auto pl-0 pr-2 header-container">
-                <a href="#" aria-current="page" class="brand w-nav-brand" aria-label="home">
+                <a href="https://futuretech.mit.edu" target="_blank" class="brand w-nav-brand" aria-label="home">
                     <img src="/FutureTech logo.png" loading="lazy" alt="FutureTech" class="image">
                 </a>
                 <nav role="navigation" class="nav-menu w-nav-menu">
