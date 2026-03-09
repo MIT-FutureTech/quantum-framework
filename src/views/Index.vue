@@ -50,7 +50,7 @@ onMounted(() => {
 <template>
     <div class="flex flex-col h-screen w-full">
         <div class="sticky top-0 z-[99999] bg-white shadow-[0_2px_5px_0_rgba(0,0,0,0.2)]" style="height: 60px;">
-            <div class="max-w-7xl mx-auto pr-2 header-container">
+            <div class="max-w-7xl mx-auto pl-0 pr-2 header-container">
                 <a href="#" aria-current="page" class="brand w-nav-brand" aria-label="home">
                     <img src="/FutureTech logo.png" loading="lazy" alt="FutureTech" class="image">
                 </a>
@@ -157,6 +157,7 @@ onMounted(() => {
     display: flex;
     align-items: center;
     text-decoration: none;
+    margin-left: -12px;
 }
 
 .brand .image {
